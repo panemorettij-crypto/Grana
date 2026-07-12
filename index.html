@@ -217,6 +217,7 @@ canvas{max-width:100%}
     <label id="sWeeklyLbl">Quanto você recebe por semana (R$)</label><input id="sWeekly" type="number" inputmode="decimal" oninput="envSum()">
     <label id="sPaydayLbl">Dia que você recebe</label>
     <select id="sPayday"><option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option></select>
+    <select id="sPaydayM" style="display:none"></select>
     <label>Envelopes semanais (quanto pode gastar por categoria)</label>
     <div id="sEnv"></div>
     <div class="small" id="sEnvSum" style="margin-top:6px"></div>
@@ -292,7 +293,7 @@ const LEVELS=[[0,"Estagiário do Cofrinho","🐣"],[100,"Aprendiz da Grana","�
 const WD=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
 const DEF={v:1,updatedAt:0,expenses:[],incomes:[],goals:[],
-  settings:{name:"",weeklyIncome:100,payday:1,freq:"sem",envelopes:{}},
+  settings:{name:"",weeklyIncome:100,payday:1,paydayM:5,freq:"sem",envelopes:{}},
   game:{xp:0,logDates:[],processedWeeks:[],ach:[]}};
 
 let S=load(), listFilter="all", txType="exp", txCat=CATS[0][0], txSrc=SRCS[0][0], editTx=null, gEmoji=GOAL_EMOJIS[0];
@@ -319,9 +320,10 @@ const ds=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+Strin
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const catEmoji=c=>{const f=CATS.find(x=>x[0]===c);return f?f[1]:"📦";};
 
-function weekStart(date){ // início da semana = último dia de pagamento
+function weekStart(date){ // início da semana = dia de pagamento (semanal) ou segunda (mensal)
   const d=new Date(date); d.setHours(0,0,0,0);
-  const diff=(d.getDay()-S.settings.payday+7)%7;
+  const wd=S.settings.freq==="mes"?1:S.settings.payday;
+  const diff=(d.getDay()-wd+7)%7;
   d.setDate(d.getDate()-diff); return d;
 }
 function inWeek(dateStr,ws){const d=pd(dateStr);const we=new Date(ws);we.setDate(we.getDate()+7);return d>=ws&&d<we;}
@@ -566,6 +568,11 @@ function getInsights(){
       out.push(["🔮",`No ritmo atual (sobra de ${fmt0(rate)}/semana), você conquista ${g.emoji} <b>${g.name}</b> em <b>${wks} semana${wks>1?"s":""}</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}).`]);}
     else out.push(["🔮",`No ritmo atual você não está sobrando nada para ${g.emoji} ${g.name}. Que tal apertar um envelope?`]);
   }
+  // próximo pagamento
+  const np=nextPayday();
+  const dd=Math.round((np-new Date(new Date().setHours(0,0,0,0)))/864e5);
+  if(dd>0)out.push(["💵",`Próximo pagamento em <b>${dd} dia${dd>1?"s":""}</b> (${np.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}).`]);
+  else if(dd===0)out.push(["💵",`<b>Hoje é dia de pagamento!</b> 🎉 Não esqueça de registrar a entrada.`]);
   if(!out.length)out.push(["👋",`Registre seus gastos e rendas para eu gerar insights personalizados!`]);
   return out;
 }
@@ -679,6 +686,9 @@ function renderMe(){
     document.getElementById("sFreq").value=S.settings.freq||"sem";
     document.getElementById("sWeekly").value=S.settings.weeklyIncome||"";
     document.getElementById("sPayday").value=S.settings.payday;
+    const pm=document.getElementById("sPaydayM");
+    if(!pm.options.length)pm.innerHTML=[...Array(31)].map((_,i)=>`<option value="${i+1}">Dia ${i+1}</option>`).join("");
+    pm.value=S.settings.paydayM||5;
     freqUi(false);
     document.getElementById("sEnv").innerHTML=CATS.map(([c,e])=>`<div class="row" style="margin-top:8px"><span style="font-size:.85rem;flex:1">${e} ${c}</span><input data-env="${c}" type="number" inputmode="decimal" value="${S.settings.envelopes[c]||""}" placeholder="—" style="width:110px" oninput="envSum()"></div>`).join("");
     envSum();
@@ -687,8 +697,24 @@ function renderMe(){
 function freqUi(recalc=true){
   const mes=document.getElementById("sFreq").value==="mes";
   document.getElementById("sWeeklyLbl").textContent=mes?"Quanto você recebe por mês (R$)":"Quanto você recebe por semana (R$)";
-  document.getElementById("sPaydayLbl").textContent=mes?"Dia em que sua semana de envelopes reinicia":"Dia que você recebe";
+  document.getElementById("sPaydayLbl").textContent=mes?"Dia do mês em que você recebe":"Dia que você recebe";
+  document.getElementById("sPayday").style.display=mes?"none":"block";
+  document.getElementById("sPaydayM").style.display=mes?"block":"none";
   if(recalc)envSum();
+}
+function nextPayday(){ // próxima data de pagamento
+  const now=new Date();now.setHours(0,0,0,0);
+  if(S.settings.freq==="mes"){
+    const day=Number(S.settings.paydayM||1);
+    for(let k=0;k<2;k++){
+      const y=now.getFullYear(),m=now.getMonth()+k;
+      const last=new Date(y,m+1,0).getDate();
+      const d=new Date(y,m,Math.min(day,last));
+      if(d>=now)return d;
+    }
+  }
+  const diff=(S.settings.payday-now.getDay()+7)%7;
+  const d=new Date(now);d.setDate(d.getDate()+(diff===0?7:diff));return d;
 }
 function envSum(){
   let t=0;document.querySelectorAll("[data-env]").forEach(i=>t+=Number(i.value||0));
@@ -702,6 +728,7 @@ function saveSettings(){
   S.settings.freq=document.getElementById("sFreq").value;
   S.settings.weeklyIncome=Number(document.getElementById("sWeekly").value||0);
   S.settings.payday=Number(document.getElementById("sPayday").value);
+  S.settings.paydayM=Number(document.getElementById("sPaydayM").value||5);
   const env={};document.querySelectorAll("[data-env]").forEach(i=>{if(Number(i.value)>0)env[i.dataset.env]=Number(i.value);});
   S.settings.envelopes=env;
   save();toast("✓ Configurações salvas");
