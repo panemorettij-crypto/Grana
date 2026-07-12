@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Grana⁺ · Diário Financeiro</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<script>if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<style>
+:root{
+  --bg:#0d1117; --card:#161b27; --card2:#1c2333; --line:#252d40;
+  --txt:#e6e9f0; --mut:#8b93a7; --acc:#4ade80; --acc2:#22c55e;
+  --blue:#60a5fa; --amber:#fbbf24; --red:#f87171; --purple:#c084fc;
+  --r:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:16px}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding-bottom:90px;min-height:100vh}
+.wrap{max-width:560px;margin:0 auto;padding:16px}
+header{position:sticky;top:0;z-index:50;background:rgba(13,17,23,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.hrow{max-width:560px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.logo{font-weight:800;font-size:1.15rem;letter-spacing:-.5px}
+.logo span{color:var(--acc)}
+.lvlbox{flex:1;min-width:0}
+.lvlname{font-size:.68rem;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xpbar{height:6px;background:var(--line);border-radius:3px;margin-top:3px;overflow:hidden}
+.xpfill{height:100%;background:linear-gradient(90deg,var(--purple),var(--blue));border-radius:3px;transition:width .6s}
+.streak{font-size:.85rem;font-weight:700;background:var(--card2);padding:6px 10px;border-radius:12px;white-space:nowrap}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
+.card h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:12px;font-weight:600}
+.big{font-size:2rem;font-weight:800;letter-spacing:-1px}
+.pos{color:var(--acc)} .neg{color:var(--red)} .mut{color:var(--mut)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center}
+.grid3 .n{font-weight:700;font-size:1.05rem}
+.grid3 .l{font-size:.68rem;color:var(--mut);margin-top:2px}
+.env{margin-bottom:12px}
+.env .row{font-size:.85rem;margin-bottom:4px}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.fill{height:100%;border-radius:4px;background:var(--acc);transition:width .5s}
+.fill.warn{background:var(--amber)} .fill.over{background:var(--red)}
+.tx{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.tx:last-child{border-bottom:none}
+.tx .ico{width:38px;height:38px;border-radius:12px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.tx .inf{flex:1;min-width:0}
+.tx .d1{font-size:.9rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .d2{font-size:.72rem;color:var(--mut)}
+.tx .val{font-weight:700;font-size:.9rem;white-space:nowrap}
+.imp-tag{font-size:.6rem;background:rgba(248,113,113,.15);color:var(--red);padding:2px 6px;border-radius:6px;margin-left:6px;vertical-align:middle}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--acc2);color:#04110a;font-weight:700;border:none;border-radius:12px;padding:12px 18px;font-size:.95rem;cursor:pointer;width:100%}
+.btn:active{transform:scale(.98)}
+.btn.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+.btn.sm{width:auto;padding:8px 14px;font-size:.8rem}
+.btn.danger{background:rgba(248,113,113,.15);color:var(--red)}
+nav{position:fixed;bottom:0;left:0;right:0;background:rgba(13,17,23,.95);backdrop-filter:blur(10px);border-top:1px solid var(--line);z-index:50}
+.nrow{max-width:560px;margin:0 auto;display:flex}
+.nbtn{flex:1;background:none;border:none;color:var(--mut);padding:10px 0 max(10px,env(safe-area-inset-bottom));font-size:.62rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.nbtn .i{font-size:1.3rem}
+.nbtn.on{color:var(--acc)}
+.fab{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--blue));color:#04110a;font-size:1.8rem;border:none;margin-top:-24px;box-shadow:0 4px 20px rgba(74,222,128,.4);cursor:pointer;font-weight:700;flex-shrink:0;align-self:center}
+.view{display:none} .view.on{display:block;animation:fade .25s}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.modal.on{display:flex}
+.sheet{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:20px;animation:up .25s}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.sheet h2{font-size:1.1rem;margin-bottom:16px}
+label{display:block;font-size:.75rem;color:var(--mut);margin:12px 0 5px;font-weight:600}
+input,select,textarea{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:12px;font-size:1rem;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
+.seg{display:flex;background:var(--card2);border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;background:none;border:none;color:var(--mut);padding:9px;border-radius:9px;font-weight:600;font-size:.85rem;cursor:pointer}
+.seg button.on{background:var(--acc2);color:#04110a}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:8px 13px;font-size:.8rem;cursor:pointer;color:var(--txt)}
+.chip.on{background:var(--acc2);color:#04110a;border-color:var(--acc2);font-weight:700}
+.tog{display:flex;align-items:center;justify-content:space-between;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px;cursor:pointer}
+.tog .sw{width:44px;height:26px;background:var(--line);border-radius:13px;position:relative;transition:.2s;flex-shrink:0}
+.tog .sw::after{content:'';position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:3px;left:3px;transition:.2s}
+.tog.on .sw{background:var(--red)}
+.tog.on .sw::after{left:21px}
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--acc);color:var(--txt);padding:10px 18px;border-radius:14px;font-size:.85rem;font-weight:600;z-index:200;box-shadow:0 6px 24px rgba(0,0,0,.5);animation:fade .3s;max-width:90vw;text-align:center}
+.ach{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.abox{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 6px;text-align:center}
+.abox .e{font-size:1.6rem}
+.abox .t{font-size:.62rem;font-weight:700;margin-top:5px}
+.abox .s{font-size:.56rem;color:var(--mut);margin-top:2px}
+.abox.lock{opacity:.35;filter:grayscale(1)}
+.goal{margin-bottom:14px}
+.insight{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:.85rem;line-height:1.45}
+.insight:last-child{border-bottom:none}
+.insight .e{font-size:1.1rem}
+.mission{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:.85rem}
+.mission .chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0}
+.mission.done .chk{background:var(--acc2);border-color:var(--acc2);color:#04110a}
+.mission.done{color:var(--mut);text-decoration:line-through}
+.mission .xp{margin-left:auto;font-size:.7rem;color:var(--purple);font-weight:700;text-decoration:none}
+canvas{max-width:100%}
+.tabs2{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto}
+.pill{background:var(--card);border:1px solid var(--line);color:var(--mut);border-radius:20px;padding:7px 14px;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap}
+.pill.on{background:var(--acc2);color:#04110a;border-color:var(--acc2)}
+.cloud-dot{width:8px;height:8px;border-radius:50%;background:var(--mut);display:inline-block;margin-right:6px}
+.cloud-dot.ok{background:var(--acc)}
+.small{font-size:.75rem;color:var(--mut);line-height:1.5}
+.confetti{position:fixed;font-size:1.4rem;z-index:300;pointer-events:none;animation:cfall 1.6s ease-in forwards}
+@keyframes cfall{to{transform:translateY(105vh) rotate(360deg);opacity:.2}}
+.lvlup{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:250;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;animation:fade .3s;text-align:center;padding:20px}
+.lvlup .e{font-size:4rem}
+.empty{text-align:center;color:var(--mut);padding:24px 10px;font-size:.85rem;line-height:1.6}
+</style>
+</head>
+<body>
+<header><div class="hrow">
+  <div class="logo">Grana<span>⁺</span></div>
+  <div class="lvlbox"><div class="lvlname" id="lvlName"></div><div class="xpbar"><div class="xpfill" id="xpFill"></div></div></div>
+  <div class="streak" id="streakBox">🔥 0</div>
+</div></header>
+
+<div class="wrap">
+
+<!-- ============ INÍCIO ============ -->
+<div class="view on" id="v-home">
+  <div class="card" style="background:linear-gradient(135deg,#14281c,#161b27)">
+    <h3>Saldo livre</h3>
+    <div class="big" id="hBalance">R$ 0,00</div>
+    <div class="small" id="hSub" style="margin-top:4px"></div>
+  </div>
+  <div class="card">
+    <h3 id="hWeekTitle">Esta semana</h3>
+    <div class="grid3">
+      <div><div class="n pos" id="hWIn">R$ 0</div><div class="l">Recebido</div></div>
+      <div><div class="n neg" id="hWOut">R$ 0</div><div class="l">Gasto</div></div>
+      <div><div class="n" id="hWLeft">R$ 0</div><div class="l">Disponível</div></div>
+    </div>
+  </div>
+  <div class="card"><h3>🎯 Missões da semana</h3><div id="hMissions"></div></div>
+  <div class="card"><h3>Envelopes da semana</h3><div id="hEnvelopes"></div></div>
+  <div class="card"><h3>💡 Insights</h3><div id="hInsights"></div></div>
+  <div class="card"><h3>Últimos lançamentos</h3><div id="hRecent"></div></div>
+</div>
+
+<!-- ============ EXTRATO ============ -->
+<div class="view" id="v-list">
+  <div class="tabs2">
+    <button class="pill on" data-f="all" onclick="listFilter='all';render()">Tudo</button>
+    <button class="pill" data-f="exp" onclick="listFilter='exp';render()">Gastos</button>
+    <button class="pill" data-f="inc" onclick="listFilter='inc';render()">Renda</button>
+    <button class="pill" data-f="imp" onclick="listFilter='imp';render()">Impulsos</button>
+  </div>
+  <div class="card"><div id="lList"></div></div>
+</div>
+
+<!-- ============ ANÁLISE ============ -->
+<div class="view" id="v-anal">
+  <div class="card"><h3>Gastos por categoria (mês)</h3><canvas id="cCat" height="220"></canvas></div>
+  <div class="card"><h3>Semana a semana</h3><canvas id="cWeek" height="200"></canvas></div>
+  <div class="card" style="border-color:rgba(248,113,113,.35)">
+    <h3 style="color:var(--red)">😈 Raio-X dos impulsos</h3>
+    <div class="grid3" style="margin-bottom:14px">
+      <div><div class="n neg" id="aImpTotal">R$ 0</div><div class="l">Por impulso (mês)</div></div>
+      <div><div class="n" id="aImpPct">0%</div><div class="l">Dos seus gastos</div></div>
+      <div><div class="n" id="aImpDay">—</div><div class="l">Dia mais perigoso</div></div>
+    </div>
+    <div id="aImpMsg" class="small"></div>
+  </div>
+  <div class="card"><h3>💡 Diagnóstico do mês</h3><div id="aInsights"></div></div>
+</div>
+
+<!-- ============ METAS ============ -->
+<div class="view" id="v-goals">
+  <div class="card" style="background:linear-gradient(135deg,#1c1533,#161b27)">
+    <h3>Total guardado</h3>
+    <div class="big" style="color:var(--purple)" id="gTotal">R$ 0,00</div>
+    <div class="small" id="gRate" style="margin-top:4px"></div>
+  </div>
+  <div id="gList"></div>
+  <button class="btn sec" onclick="openGoalModal()">＋ Nova meta</button>
+</div>
+
+<!-- ============ PERFIL ============ -->
+<div class="view" id="v-me">
+  <div class="card" style="text-align:center">
+    <div style="font-size:2.6rem" id="pEmoji">🐣</div>
+    <div style="font-weight:800;font-size:1.1rem;margin-top:6px" id="pLvl"></div>
+    <div class="small" id="pXp"></div>
+  </div>
+  <div class="card"><h3>🏆 Conquistas (<span id="pAchN">0</span>/<span id="pAchT">0</span>)</h3><div class="ach" id="pAch"></div></div>
+  <div class="card">
+    <h3>☁️ Nuvem & Sincronização</h3>
+    <div class="small" style="margin-bottom:10px"><span class="cloud-dot" id="cloudDot"></span><span id="cloudStatus">Desconectado — dados só neste aparelho</span></div>
+    <div id="cloudSetup">
+      <div class="small" style="margin-bottom:10px">Conecte seu projeto Firebase (gratuito) para sincronizar em todos os aparelhos. Veja o <b>GUIA-NUVEM.md</b> para criar o projeto em ~10 min.</div>
+      <label>Configuração do Firebase (cole o trecho firebaseConfig)</label>
+      <textarea id="fbCfg" rows="4" placeholder='{"apiKey":"...","authDomain":"...","projectId":"..."}'></textarea>
+      <button class="btn sec" style="margin-top:10px" onclick="saveFbCfg()">Salvar configuração</button>
+    </div>
+    <div id="cloudLogin" style="display:none">
+      <button class="btn" onclick="cloudSignIn()">Entrar com Google</button>
+      <button class="btn sec sm" style="margin-top:8px" onclick="resetFbCfg()">Trocar configuração</button>
+    </div>
+    <div id="cloudOn" style="display:none">
+      <div class="small" id="cloudUser" style="margin-bottom:10px"></div>
+      <button class="btn danger" onclick="cloudSignOut()">Sair da conta</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>⚙️ Configurações</h3>
+    <label>Seu nome</label><input id="sName" placeholder="Como te chamamos?">
+    <label>Quanto você recebe por semana (R$)</label><input id="sWeekly" type="number" inputmode="decimal">
+    <label>Dia que você recebe</label>
+    <select id="sPayday"><option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option></select>
+    <label>Envelopes semanais (quanto pode gastar por categoria)</label>
+    <div id="sEnv"></div>
+    <div class="small" id="sEnvSum" style="margin-top:6px"></div>
+    <button class="btn" style="margin-top:14px" onclick="saveSettings()">Salvar</button>
+  </div>
+  <div class="card">
+    <h3>📦 Dados</h3>
+    <button class="btn sec" onclick="document.getElementById('impXlsx').click()">Importar planilha (.xlsx)</button>
+    <input type="file" id="impXlsx" accept=".xlsx" style="display:none" onchange="importXlsx(this)">
+    <button class="btn sec" style="margin-top:8px" onclick="exportJson()">Exportar backup (.json)</button>
+    <button class="btn sec" style="margin-top:8px" onclick="document.getElementById('impJson').click()">Restaurar backup</button>
+    <input type="file" id="impJson" accept=".json" style="display:none" onchange="importJson(this)">
+  </div>
+</div>
+</div>
+
+<!-- NAV -->
+<nav><div class="nrow">
+  <button class="nbtn on" data-v="home" onclick="go('home')"><span class="i">🏠</span>Início</button>
+  <button class="nbtn" data-v="list" onclick="go('list')"><span class="i">🧾</span>Extrato</button>
+  <button class="fab" onclick="openTxModal()">＋</button>
+  <button class="nbtn" data-v="anal" onclick="go('anal')"><span class="i">📊</span>Análise</button>
+  <button class="nbtn" data-v="goals" onclick="go('goals')"><span class="i">🎯</span>Metas</button>
+</div></nav>
+<div style="position:fixed;top:12px;right:12px;z-index:60"></div>
+
+<!-- MODAL: transação -->
+<div class="modal" id="mTx" onclick="if(event.target===this)closeModal('mTx')">
+  <div class="sheet">
+    <h2 id="mTxTitle">Novo lançamento</h2>
+    <div class="seg" id="txSeg">
+      <button class="on" onclick="setTxType('exp')">💸 Gasto</button>
+      <button onclick="setTxType('inc')">💰 Renda</button>
+      <button onclick="setTxType('sav')">🐷 Guardar</button>
+    </div>
+    <label>Valor (R$)</label><input id="txVal" type="number" inputmode="decimal" placeholder="0,00" step="0.01">
+    <div id="txExpFields">
+      <label>Categoria</label><div class="chips" id="txCats"></div>
+      <div class="tog" id="txImp" onclick="this.classList.toggle('on')"><div><b>😈 Foi por impulso?</b><div class="small">Não estava planejado, bateu a vontade e você comprou</div></div><div class="sw"></div></div>
+    </div>
+    <div id="txIncFields" style="display:none">
+      <label>Fonte</label><div class="chips" id="txSrcs"></div>
+    </div>
+    <div id="txSavFields" style="display:none">
+      <label>Guardar para qual meta?</label><select id="txGoal"></select>
+    </div>
+    <label>Descrição (opcional)</label><input id="txDesc" placeholder="Ex.: lanche depois da aula">
+    <label>Data</label><input id="txDate" type="date">
+    <button class="btn" style="margin-top:18px" onclick="saveTx()">Salvar ✓</button>
+    <button class="btn danger" id="txDel" style="margin-top:8px;display:none" onclick="deleteTx()">Excluir</button>
+  </div>
+</div>
+
+<!-- MODAL: meta -->
+<div class="modal" id="mGoal" onclick="if(event.target===this)closeModal('mGoal')">
+  <div class="sheet">
+    <h2>Nova meta 🎯</h2>
+    <label>O que você quer conquistar?</label><input id="gName" placeholder="Ex.: PlayStation 5, viagem, celular novo">
+    <label>Emoji</label><div class="chips" id="gEmojis"></div>
+    <label>Valor necessário (R$)</label><input id="gTarget" type="number" inputmode="decimal">
+    <button class="btn" style="margin-top:18px" onclick="saveGoal()">Criar meta</button>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+/* ================= DADOS ================= */
+const CATS=[["Alimentação","🍔"],["Transporte","🚌"],["Lazer","🎮"],["Assinaturas","📺"],["Compras pessoais","🛍️"],["Educação","📚"],["Presentes","🎁"],["Outros","📦"]];
+const SRCS=[["Mesada semanal","👨‍👩‍👧"],["Salário/estágio","💼"],["Bico/freela","🛠️"],["Bônus/presente","🎁"],["Outros","💵"]];
+const GOAL_EMOJIS=["🎮","📱","✈️","💻","👟","🎸","🚗","🎓","💍","🏖️","📷","🛡️"];
+const LEVELS=[[0,"Estagiário do Cofrinho","🐣"],[100,"Aprendiz da Grana","🌱"],[300,"Guardião do Troco","🪙"],[600,"Ninja da Nota","🥷"],[1000,"Mestre dos Boletos","🧙"],[1600,"Lorde da Poupança","👑"],[2500,"Barão do Pix","💎"],[4000,"Lenda das Finanças","🐉"]];
+const WD=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+
+const DEF={v:1,updatedAt:0,expenses:[],incomes:[],goals:[],
+  settings:{name:"",weeklyIncome:100,payday:1,envelopes:{}},
+  game:{xp:0,logDates:[],processedWeeks:[],ach:[]}};
+
+let S=load(), listFilter="all", txType="exp", txCat=CATS[0][0], txSrc=SRCS[0][0], editTx=null, gEmoji=GOAL_EMOJIS[0];
+let charts={};
+
+function load(){
+  try{const d=JSON.parse(localStorage.getItem("grana_data"));if(d&&d.v)return Object.assign(structuredClone(DEF),d);}catch(e){}
+  return structuredClone(DEF);
+}
+function save(pushCloud=true){
+  S.updatedAt=Date.now();
+  localStorage.setItem("grana_data",JSON.stringify(S));
+  if(pushCloud)scheduleCloudSave();
+  checkAchievements();
+  render();
+}
+
+/* ================= UTIL ================= */
+const fmt=v=>(v<0?"-":"")+"R$ "+Math.abs(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt0=v=>"R$ "+Math.round(v).toLocaleString("pt-BR");
+const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+const pd=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d);};
+const ds=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const catEmoji=c=>{const f=CATS.find(x=>x[0]===c);return f?f[1]:"📦";};
+
+function weekStart(date){ // início da semana = último dia de pagamento
+  const d=new Date(date); d.setHours(0,0,0,0);
+  const diff=(d.getDay()-S.settings.payday+7)%7;
+  d.setDate(d.getDate()-diff); return d;
+}
+function inWeek(dateStr,ws){const d=pd(dateStr);const we=new Date(ws);we.setDate(we.getDate()+7);return d>=ws&&d<we;}
+function weekExpenses(ws){return S.expenses.filter(e=>inWeek(e.d,ws));}
+function weekIncomes(ws){return S.incomes.filter(i=>inWeek(i.d,ws));}
+const sum=a=>a.reduce((t,x)=>t+Number(x.val||0),0);
+const savedTotal=()=>S.goals.reduce((t,g)=>t+sum(g.deposits||[]),0);
+const monthKey=s=>s.slice(0,7);
+const thisMonth=()=>todayStr().slice(0,7);
+
+function toast(msg){
+  const t=document.createElement("div");t.className="toast";t.innerHTML=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity="0";t.style.transition="opacity .4s";},2200);
+  setTimeout(()=>t.remove(),2700);
+}
+
+/* ================= GAMIFICAÇÃO ================= */
+function levelInfo(){
+  let i=LEVELS.length-1; while(i>0&&S.game.xp<LEVELS[i][0])i--;
+  const next=LEVELS[i+1];
+  return {i,name:LEVELS[i][1],emoji:LEVELS[i][2],next,
+    pct:next?Math.min(100,100*(S.game.xp-LEVELS[i][0])/(next[0]-LEVELS[i][0])):100};
+}
+function addXP(n,reason){
+  const before=levelInfo().i;
+  S.game.xp+=n;
+  toast(`+${n} XP · ${reason}`);
+  if(levelInfo().i>before)levelUp();
+}
+function levelUp(){
+  const L=levelInfo();
+  const el=document.createElement("div");el.className="lvlup";
+  el.innerHTML=`<div class="e">${L.emoji}</div><div style="font-size:1.4rem;font-weight:800">Subiu de nível!</div><div style="color:var(--acc);font-weight:700">${L.name}</div><button class="btn" style="max-width:200px;margin-top:10px">Bora! 🚀</button>`;
+  el.querySelector("button").onclick=()=>el.remove();
+  document.body.appendChild(el); confetti();
+}
+function confetti(){
+  const em=["🎉","✨","💰","🪙","⭐"];
+  for(let i=0;i<24;i++){const s=document.createElement("div");s.className="confetti";s.textContent=em[i%em.length];
+    s.style.left=Math.random()*100+"vw";s.style.top="-40px";s.style.animationDelay=(Math.random()*.5)+"s";
+    document.body.appendChild(s);setTimeout(()=>s.remove(),2200);}
+}
+function streak(){
+  const set=new Set(S.game.logDates); let n=0; const d=new Date();
+  if(!set.has(ds(d)))d.setDate(d.getDate()-1); // ainda vale se registrou ontem
+  while(set.has(ds(d))){n++;d.setDate(d.getDate()-1);}
+  return n;
+}
+function registerLogDay(dateStr){
+  if(dateStr!==todayStr())return;
+  if(!S.game.logDates.includes(dateStr)){S.game.logDates.push(dateStr);S.game.logDates=S.game.logDates.slice(-400);}
+}
+
+const ACH=[
+["first","🍼","Primeiro passo","1º lançamento",s=>s.expenses.length+s.incomes.length>=1],
+["ten","✍️","Escriba","10 lançamentos",s=>s.expenses.length+s.incomes.length>=10],
+["fifty","📖","Historiador","50 lançamentos",s=>s.expenses.length+s.incomes.length>=50],
+["s7","🔥","Em chamas","7 dias seguidos registrando",()=>streak()>=7],
+["s30","🌋","Imparável","30 dias seguidos",()=>streak()>=30],
+["noimp","😇","Zen total","Semana fechada sem impulsos",s=>s.game.zenWeek],
+["budget","📮","Carteiro fiel","Semana dentro dos envelopes",s=>s.game.budgetWeek],
+["goal1","🎯","Sonhador","Primeira meta criada",s=>s.goals.length>=1],
+["goal50","⛰️","Meio do caminho","Meta 50% completa",s=>s.goals.some(g=>g.target>0&&sum(g.deposits||[])>=g.target/2)],
+["goalok","🏆","Conquistador","Meta 100% completa",s=>s.goals.some(g=>g.target>0&&sum(g.deposits||[])>=g.target)],
+["save100","🐷","Porquinho feliz","R$100 guardados",()=>savedTotal()>=100],
+["save500","🏦","Mini banqueiro","R$500 guardados",()=>savedTotal()>=500],
+["cloud","☁️","Nas nuvens","Sincronização ativada",s=>s.game.cloudOn],
+["import","📥","Migrador","Planilha importada",s=>s.game.imported]
+];
+function checkAchievements(){
+  ACH.forEach(([id,e,t])=>{
+    if(!S.game.ach.includes(id)&&ACH.find(a=>a[0]===id)[4](S)){
+      S.game.ach.push(id);
+      S.game.xp+=40;
+      toast(`🏆 Conquista: ${t}! +40 XP`);
+      confetti();
+      localStorage.setItem("grana_data",JSON.stringify(S));
+    }
+  });
+}
+
+/* Fecha semanas passadas: dá XP por missões cumpridas */
+function processPastWeeks(){
+  const cur=ds(weekStart(new Date()));
+  const weeks=new Set([...S.expenses.map(e=>ds(weekStart(pd(e.d)))),...S.incomes.map(i=>ds(weekStart(pd(i.d))))]);
+  let changed=false;
+  weeks.forEach(w=>{
+    if(w>=cur||S.game.processedWeeks.includes(w))return;
+    const ws=pd(w),ex=weekExpenses(ws);
+    const envTot=Object.values(S.settings.envelopes).reduce((a,b)=>a+Number(b||0),0);
+    if(envTot>0&&sum(ex)<=envTot){S.game.xp+=50;S.game.budgetWeek=true;}
+    if(ex.length&&!ex.some(e=>e.imp)){S.game.xp+=30;S.game.zenWeek=true;}
+    S.game.processedWeeks.push(w);changed=true;
+  });
+  if(changed){localStorage.setItem("grana_data",JSON.stringify(S));checkAchievements();}
+}
+
+/* ================= LANÇAMENTOS ================= */
+function openTxModal(edit){
+  editTx=edit||null;
+  document.getElementById("mTxTitle").textContent=edit?"Editar lançamento":"Novo lançamento";
+  document.getElementById("txDel").style.display=edit?"block":"none";
+  document.getElementById("txVal").value=edit?edit.item.val:"";
+  document.getElementById("txDesc").value=edit?(edit.item.desc||edit.item.note||""):"";
+  document.getElementById("txDate").value=edit?edit.item.d:todayStr();
+  document.getElementById("txImp").classList.toggle("on",!!(edit&&edit.item.imp));
+  setTxType(edit?edit.type:"exp");
+  if(edit&&edit.type==="exp")txCat=edit.item.cat;
+  if(edit&&edit.type==="inc")txSrc=edit.item.src;
+  renderChips();
+  document.getElementById("mTx").classList.add("on");
+  if(!edit)setTimeout(()=>document.getElementById("txVal").focus(),250);
+}
+function closeModal(id){document.getElementById(id).classList.remove("on");}
+function setTxType(t){
+  txType=t;
+  const b=document.querySelectorAll("#txSeg button");
+  b.forEach(x=>x.classList.remove("on"));
+  b[t==="exp"?0:t==="inc"?1:2].classList.add("on");
+  document.getElementById("txExpFields").style.display=t==="exp"?"block":"none";
+  document.getElementById("txIncFields").style.display=t==="inc"?"block":"none";
+  document.getElementById("txSavFields").style.display=t==="sav"?"block":"none";
+  if(t==="sav"){
+    const sel=document.getElementById("txGoal");
+    sel.innerHTML=S.goals.filter(g=>sum(g.deposits||[])<g.target).map(g=>`<option value="${g.id}">${g.emoji} ${g.name}</option>`).join("")||"<option value=''>Crie uma meta primeiro</option>";
+  }
+}
+function renderChips(){
+  document.getElementById("txCats").innerHTML=CATS.map(([c,e])=>`<button class="chip ${c===txCat?'on':''}" onclick="txCat='${c}';renderChips()">${e} ${c}</button>`).join("");
+  document.getElementById("txSrcs").innerHTML=SRCS.map(([c,e])=>`<button class="chip ${c===txSrc?'on':''}" onclick="txSrc='${c.replace(/'/g,"\\'")}';renderChips()">${e} ${c}</button>`).join("");
+}
+function saveTx(){
+  const val=parseFloat(document.getElementById("txVal").value);
+  if(!val||val<=0)return toast("⚠️ Coloque um valor válido");
+  const d=document.getElementById("txDate").value||todayStr();
+  const desc=document.getElementById("txDesc").value.trim();
+  if(editTx){ // editar
+    const it=editTx.item;
+    it.val=val;it.d=d;
+    if(editTx.type==="exp"){it.cat=txCat;it.desc=desc;it.imp=document.getElementById("txImp").classList.contains("on");}
+    else{it.src=txSrc;it.note=desc;}
+    closeModal("mTx");save();return;
+  }
+  if(txType==="exp"){
+    const imp=document.getElementById("txImp").classList.contains("on");
+    S.expenses.push({id:uid(),d,cat:txCat,desc,val,imp});
+    registerLogDay(d);addXP(10,imp?"registrado (mesmo sendo impulso, anotar já é vitória 😄)":"gasto registrado");
+  }else if(txType==="inc"){
+    S.incomes.push({id:uid(),d,src:txSrc,val,note:desc});
+    registerLogDay(d);addXP(10,"renda registrada");
+  }else{
+    const gid=document.getElementById("txGoal").value;
+    const g=S.goals.find(x=>x.id===gid);
+    if(!g)return toast("⚠️ Crie uma meta primeiro");
+    g.deposits=g.deposits||[];g.deposits.push({d,val});
+    addXP(20,"dinheiro guardado 🐷");
+    if(sum(g.deposits)>=g.target)toast(`🏆 META COMPLETA: ${g.name}!`);
+  }
+  closeModal("mTx");save();
+}
+function deleteTx(){
+  if(!editTx)return;
+  if(editTx.type==="exp")S.expenses=S.expenses.filter(x=>x.id!==editTx.item.id);
+  else S.incomes=S.incomes.filter(x=>x.id!==editTx.item.id);
+  closeModal("mTx");save();toast("Excluído");
+}
+
+/* ================= METAS ================= */
+function openGoalModal(){
+  gEmoji=GOAL_EMOJIS[0];
+  document.getElementById("gEmojis").innerHTML=GOAL_EMOJIS.map(e=>`<button class="chip ${e===gEmoji?'on':''}" onclick="gEmoji='${e}';openGoalEmojiSel(this)">${e}</button>`).join("");
+  document.getElementById("gName").value="";document.getElementById("gTarget").value="";
+  document.getElementById("mGoal").classList.add("on");
+}
+function openGoalEmojiSel(btn){document.querySelectorAll("#gEmojis .chip").forEach(c=>c.classList.remove("on"));btn.classList.add("on");}
+function saveGoal(){
+  const name=document.getElementById("gName").value.trim();
+  const target=parseFloat(document.getElementById("gTarget").value);
+  if(!name||!target)return toast("⚠️ Preencha nome e valor");
+  S.goals.push({id:uid(),name,emoji:gEmoji,target,deposits:[]});
+  closeModal("mGoal");addXP(15,"meta criada");save();
+}
+function delGoal(id){
+  const g=S.goals.find(x=>x.id===id);
+  if(confirm(`Excluir a meta "${g.name}"? O valor guardado volta ao saldo.`)){S.goals=S.goals.filter(x=>x.id!==id);save();}
+}
+function weeklySavingRate(){ // média das últimas 4 semanas fechadas (renda - gasto)
+  const cur=weekStart(new Date());const rates=[];
+  for(let i=1;i<=4;i++){
+    const ws=new Date(cur);ws.setDate(ws.getDate()-7*i);
+    const inc=sum(weekIncomes(ws)),ex=sum(weekExpenses(ws));
+    if(inc>0||ex>0)rates.push(inc-ex);
+  }
+  if(!rates.length)return null;
+  return rates.reduce((a,b)=>a+b,0)/rates.length;
+}
+
+/* ================= INSIGHTS ================= */
+function getInsights(){
+  const out=[];const m=thisMonth();
+  const mex=S.expenses.filter(e=>monthKey(e.d)===m);
+  const ws=weekStart(new Date());
+  const wex=weekExpenses(ws);
+  const lastWs=new Date(ws);lastWs.setDate(lastWs.getDate()-7);
+  const lex=weekExpenses(lastWs);
+  // comparação semanal
+  if(lex.length&&wex.length){
+    const diff=sum(wex)-sum(lex);
+    if(diff<-5)out.push(["📉",`Você gastou <b>${fmt0(-diff)} a menos</b> que na semana passada. Continua assim!`]);
+    else if(diff>5)out.push(["📈",`Atenção: <b>${fmt0(diff)} a mais</b> que na semana passada.`]);
+  }
+  // categoria líder
+  if(mex.length){
+    const by={};mex.forEach(e=>by[e.cat]=(by[e.cat]||0)+e.val);
+    const top=Object.entries(by).sort((a,b)=>b[1]-a[1])[0];
+    out.push([catEmoji(top[0]),`<b>${top[0]}</b> lidera o mês: ${fmt0(top[1])} (${Math.round(100*top[1]/sum(mex))}% do total).`]);
+  }
+  // impulsos
+  const imp=mex.filter(e=>e.imp);
+  if(imp.length){
+    const v=sum(imp);
+    out.push(["😈",`Impulsos custaram <b>${fmt0(v)}</b> este mês. Sem eles, seu saldo seria ${fmt0(v)} maior.`]);
+    const g=S.goals.find(g=>sum(g.deposits||[])<g.target);
+    if(g){const falta=g.target-sum(g.deposits||[]);
+      out.push(["🎯",`Esse valor cobriria <b>${Math.min(100,Math.round(100*v/falta))}%</b> do que falta para ${g.emoji} ${g.name}.`]);}
+  }else if(mex.length){out.push(["😇",`Nenhum gasto por impulso este mês. Nível zen!`]);}
+  // envelopes estourando
+  Object.entries(S.settings.envelopes).forEach(([c,lim])=>{
+    if(!lim)return;const spent=sum(wex.filter(e=>e.cat===c));
+    if(spent>lim)out.push(["🚨",`Envelope <b>${c}</b> estourou: ${fmt0(spent)} de ${fmt0(lim)}.`]);
+    else if(spent>lim*0.8)out.push(["⚠️",`Envelope <b>${c}</b> quase no limite (${Math.round(100*spent/lim)}%).`]);
+  });
+  // projeção
+  const rate=weeklySavingRate();
+  const g=S.goals.find(g=>g.target>0&&sum(g.deposits||[])<g.target);
+  if(g&&rate!==null){
+    const falta=g.target-sum(g.deposits||[]);
+    if(rate>0){const wks=Math.ceil(falta/rate);const d=new Date();d.setDate(d.getDate()+wks*7);
+      out.push(["🔮",`No ritmo atual (sobra de ${fmt0(rate)}/semana), você conquista ${g.emoji} <b>${g.name}</b> em <b>${wks} semana${wks>1?"s":""}</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}).`]);}
+    else out.push(["🔮",`No ritmo atual você não está sobrando nada para ${g.emoji} ${g.name}. Que tal apertar um envelope?`]);
+  }
+  if(!out.length)out.push(["👋",`Registre seus gastos e rendas para eu gerar insights personalizados!`]);
+  return out;
+}
+
+/* ================= RENDER ================= */
+function go(v){
+  document.querySelectorAll(".view").forEach(x=>x.classList.remove("on"));
+  document.getElementById("v-"+v).classList.add("on");
+  document.querySelectorAll(".nbtn").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+  if(v==="me")renderMe();
+  if(v==="anal")renderCharts();
+  window.scrollTo(0,0);
+}
+function render(){
+  const L=levelInfo();
+  document.getElementById("lvlName").textContent=`${L.emoji} ${L.name} · ${S.game.xp} XP`;
+  document.getElementById("xpFill").style.width=L.pct+"%";
+  document.getElementById("streakBox").textContent="🔥 "+streak();
+  renderHome();renderList();renderGoals();renderMe();
+  if(document.getElementById("v-anal").classList.contains("on"))renderCharts();
+}
+function renderHome(){
+  const ws=weekStart(new Date());
+  const wex=weekExpenses(ws),winc=weekIncomes(ws);
+  const totalInc=sum(S.incomes),totalEx=sum(S.expenses),saved=savedTotal();
+  const bal=totalInc-totalEx-saved;
+  const el=document.getElementById("hBalance");
+  el.textContent=fmt(bal);el.className="big "+(bal>=0?"pos":"neg");
+  document.getElementById("hSub").innerHTML=`💰 ${fmt0(totalInc)} recebido · 💸 ${fmt0(totalEx)} gasto · 🐷 ${fmt0(saved)} guardado`;
+  const we=new Date(ws);we.setDate(we.getDate()+6);
+  document.getElementById("hWeekTitle").textContent=`Semana ${ws.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} – ${we.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}`;
+  const wIn=sum(winc)||Number(S.settings.weeklyIncome||0);
+  const wOut=sum(wex),wLeft=wIn-wOut;
+  document.getElementById("hWIn").textContent=fmt0(sum(winc));
+  document.getElementById("hWOut").textContent=fmt0(wOut);
+  const l=document.getElementById("hWLeft");l.textContent=fmt0(wLeft);l.className="n "+(wLeft>=0?"pos":"neg");
+  // missões
+  const daysLogged=[...Array(7)].filter((_,i)=>{const d=new Date(ws);d.setDate(d.getDate()+i);return d<=new Date()&&S.game.logDates.includes(ds(d));}).length;
+  const daysSoFar=Math.min(7,Math.floor((new Date()-ws)/864e5)+1);
+  const envTot=Object.values(S.settings.envelopes).reduce((a,b)=>a+Number(b||0),0);
+  const noImp=!wex.some(e=>e.imp);
+  const missions=[
+    [daysLogged>=daysSoFar&&daysLogged>0,`Registrar todo dia (${daysLogged}/${daysSoFar})`,"+50 XP no fim da semana"],
+    [envTot>0?wOut<=envTot:false,envTot>0?`Ficar dentro dos envelopes (${fmt0(wOut)}/${fmt0(envTot)})`:"Configure envelopes no Perfil","+50 XP"],
+    [noImp&&wex.length>0,wex.length?`Zero impulsos esta semana`:"Zero impulsos (registre gastos)","+30 XP"]
+  ];
+  document.getElementById("hMissions").innerHTML=missions.map(([done,txt,xp])=>`<div class="mission ${done?"done":""}"><div class="chk">${done?"✓":""}</div><span>${txt}</span><span class="xp">${xp}</span></div>`).join("");
+  // envelopes
+  const envs=Object.entries(S.settings.envelopes).filter(([c,v])=>v>0);
+  document.getElementById("hEnvelopes").innerHTML=envs.length?envs.map(([c,lim])=>{
+    const spent=sum(wex.filter(e=>e.cat===c));const p=Math.min(100,100*spent/lim);
+    return `<div class="env"><div class="row"><span>${catEmoji(c)} ${c}</span><span class="${spent>lim?"neg":"mut"}">${fmt0(spent)} / ${fmt0(lim)}</span></div><div class="bar"><div class="fill ${spent>lim?"over":p>80?"warn":""}" style="width:${p}%"></div></div></div>`;
+  }).join(""):`<div class="empty">Defina envelopes semanais no Perfil 👤 e eu te mostro quanto ainda pode gastar em cada categoria.</div>`;
+  document.getElementById("hInsights").innerHTML=getInsights().slice(0,4).map(([e,t])=>`<div class="insight"><span class="e">${e}</span><span>${t}</span></div>`).join("");
+  // recentes
+  const all=allTx().slice(0,5);
+  document.getElementById("hRecent").innerHTML=all.length?all.map(txRow).join(""):`<div class="empty">Toque no botão <b style="color:var(--acc)">＋</b> para registrar seu primeiro lançamento!</div>`;
+}
+function allTx(){
+  const a=[...S.expenses.map(e=>({type:"exp",item:e})),...S.incomes.map(i=>({type:"inc",item:i}))];
+  return a.sort((x,y)=>y.item.d.localeCompare(x.item.d)||(y.item.id>x.item.id?1:-1));
+}
+function txRow(t){
+  const it=t.item;
+  const emoji=t.type==="exp"?catEmoji(it.cat):(SRCS.find(s=>s[0]===it.src)||["","💵"])[1];
+  const title=t.type==="exp"?(it.desc||it.cat):(it.src||"Renda");
+  const date=pd(it.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"});
+  return `<div class="tx" onclick='openTxModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>
+    <div class="ico">${emoji}</div>
+    <div class="inf"><div class="d1">${title}${it.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${date} · ${t.type==="exp"?it.cat:"Renda"}</div></div>
+    <div class="val ${t.type==="exp"?"neg":"pos"}">${t.type==="exp"?"−":"+"}${fmt0(it.val)}</div></div>`;
+}
+function renderList(){
+  document.querySelectorAll(".tabs2 .pill").forEach(p=>p.classList.toggle("on",p.dataset.f===listFilter));
+  let a=allTx();
+  if(listFilter==="exp")a=a.filter(t=>t.type==="exp");
+  if(listFilter==="inc")a=a.filter(t=>t.type==="inc");
+  if(listFilter==="imp")a=a.filter(t=>t.type==="exp"&&t.item.imp);
+  document.getElementById("lList").innerHTML=a.length?a.map(txRow).join(""):`<div class="empty">Nada por aqui ainda.</div>`;
+}
+function renderGoals(){
+  document.getElementById("gTotal").textContent=fmt(savedTotal());
+  const rate=weeklySavingRate();
+  document.getElementById("gRate").textContent=rate===null?"Registre algumas semanas para eu calcular seu ritmo de poupança":
+    rate>0?`Ritmo atual: sobra de ${fmt0(rate)}/semana em média`:`Atenção: você está gastando mais do que recebe (${fmt0(rate)}/semana)`;
+  document.getElementById("gList").innerHTML=S.goals.map(g=>{
+    const got=sum(g.deposits||[]);const p=g.target?Math.min(100,100*got/g.target):0;
+    let proj="";
+    if(got<g.target&&rate>0){const wks=Math.ceil((g.target-got)/rate);const d=new Date();d.setDate(d.getDate()+wks*7);
+      proj=`🔮 No ritmo atual: <b>${wks} sem.</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})})`;}
+    else if(got>=g.target)proj=`🏆 <b>META COMPLETA!</b>`;
+    return `<div class="card goal"><div class="row" style="margin-bottom:8px">
+      <span style="font-weight:700">${g.emoji} ${g.name}</span>
+      <button class="btn danger sm" onclick="delGoal('${g.id}')">✕</button></div>
+      <div class="row" style="font-size:.85rem;margin-bottom:5px"><span class="pos">${fmt0(got)}</span><span class="mut">${fmt0(g.target)}</span></div>
+      <div class="bar" style="height:10px"><div class="fill" style="width:${p}%;background:linear-gradient(90deg,var(--purple),var(--blue))"></div></div>
+      <div class="small" style="margin-top:8px">${proj}</div></div>`;
+  }).join("")||`<div class="card"><div class="empty">🎯 Crie uma meta (um jogo, uma viagem, um celular...) e use o botão ＋ → 🐷 Guardar para colocar dinheiro nela.<br><br>Eu calculo quando você vai conseguir!</div></div>`;
+}
+function renderMe(){
+  const L=levelInfo();
+  document.getElementById("pEmoji").textContent=L.emoji;
+  document.getElementById("pLvl").textContent=(S.settings.name?S.settings.name+" · ":"")+L.name;
+  document.getElementById("pXp").textContent=S.game.xp+" XP"+(L.next?` · faltam ${L.next[0]-S.game.xp} para ${L.next[2]} ${L.next[1]}`:" · nível máximo! 🐉");
+  document.getElementById("pAchN").textContent=S.game.ach.length;
+  document.getElementById("pAchT").textContent=ACH.length;
+  document.getElementById("pAch").innerHTML=ACH.map(([id,e,t,d])=>`<div class="abox ${S.game.ach.includes(id)?"":"lock"}"><div class="e">${e}</div><div class="t">${t}</div><div class="s">${d}</div></div>`).join("");
+  // settings
+  if(document.activeElement.tagName!=="INPUT"){
+    document.getElementById("sName").value=S.settings.name||"";
+    document.getElementById("sWeekly").value=S.settings.weeklyIncome||"";
+    document.getElementById("sPayday").value=S.settings.payday;
+    document.getElementById("sEnv").innerHTML=CATS.map(([c,e])=>`<div class="row" style="margin-top:8px"><span style="font-size:.85rem;flex:1">${e} ${c}</span><input data-env="${c}" type="number" inputmode="decimal" value="${S.settings.envelopes[c]||""}" placeholder="—" style="width:110px" oninput="envSum()"></div>`).join("");
+    envSum();
+  }
+}
+function envSum(){
+  let t=0;document.querySelectorAll("[data-env]").forEach(i=>t+=Number(i.value||0));
+  const w=Number(document.getElementById("sWeekly").value||S.settings.weeklyIncome||0);
+  document.getElementById("sEnvSum").innerHTML=t?`Total dos envelopes: <b>${fmt0(t)}</b> de ${fmt0(w)} semanais → sobra <b class="${w-t>=0?"pos":"neg"}">${fmt0(w-t)}</b> para guardar 🐷`:"";
+}
+function saveSettings(){
+  S.settings.name=document.getElementById("sName").value.trim();
+  S.settings.weeklyIncome=Number(document.getElementById("sWeekly").value||0);
+  S.settings.payday=Number(document.getElementById("sPayday").value);
+  const env={};document.querySelectorAll("[data-env]").forEach(i=>{if(Number(i.value)>0)env[i.dataset.env]=Number(i.value);});
+  S.settings.envelopes=env;
+  save();toast("✓ Configurações salvas");
+}
+
+/* ================= GRÁFICOS ================= */
+function renderCharts(){
+  const m=thisMonth();
+  const mex=S.expenses.filter(e=>monthKey(e.d)===m);
+  const by={};mex.forEach(e=>by[e.cat]=(by[e.cat]||0)+e.val);
+  const cats=Object.keys(by);
+  const colors=["#4ade80","#60a5fa","#fbbf24","#f87171","#c084fc","#34d399","#fb923c","#a3a3a3"];
+  if(charts.cat)charts.cat.destroy();
+  charts.cat=new Chart(document.getElementById("cCat"),{type:"doughnut",
+    data:{labels:cats.map(c=>catEmoji(c)+" "+c),datasets:[{data:cats.map(c=>by[c]),backgroundColor:colors,borderWidth:0}]},
+    options:{plugins:{legend:{position:"right",labels:{color:"#8b93a7",font:{size:11},boxWidth:12}}},cutout:"62%"}});
+  // semanas
+  const labels=[],inc=[],exp=[];
+  const cur=weekStart(new Date());
+  for(let i=7;i>=0;i--){
+    const ws=new Date(cur);ws.setDate(ws.getDate()-7*i);
+    labels.push(ws.toLocaleDateString("pt-BR",{day:"numeric",month:"short"}));
+    inc.push(sum(weekIncomes(ws)));exp.push(sum(weekExpenses(ws)));
+  }
+  if(charts.week)charts.week.destroy();
+  charts.week=new Chart(document.getElementById("cWeek"),{type:"bar",
+    data:{labels,datasets:[{label:"Renda",data:inc,backgroundColor:"#4ade80",borderRadius:5},{label:"Gastos",data:exp,backgroundColor:"#f87171",borderRadius:5}]},
+    options:{scales:{x:{ticks:{color:"#8b93a7",font:{size:10}},grid:{display:false}},y:{ticks:{color:"#8b93a7"},grid:{color:"#252d40"}}},plugins:{legend:{labels:{color:"#8b93a7"}}}}});
+  // impulsos
+  const imp=mex.filter(e=>e.imp);
+  document.getElementById("aImpTotal").textContent=fmt0(sum(imp));
+  document.getElementById("aImpPct").textContent=(mex.length?Math.round(100*sum(imp)/sum(mex)):0)+"%";
+  const byDay={};imp.forEach(e=>{const w=pd(e.d).getDay();byDay[w]=(byDay[w]||0)+e.val;});
+  const worst=Object.entries(byDay).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById("aImpDay").textContent=worst?WD[worst[0]]:"—";
+  let msg="";
+  if(imp.length){
+    const byCat={};imp.forEach(e=>byCat[e.cat]=(byCat[e.cat]||0)+e.val);
+    const topC=Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
+    msg=`Seus impulsos atacam mais em <b>${topC[0]}</b>${worst?` e nas <b>${WD[worst[0]]}s</b>`:""}. `;
+    const yearly=sum(imp)*12;
+    msg+=`Nesse ritmo, são <b>${fmt0(yearly)}/ano</b> em compras não planejadas. Regra de ouro: espere 24h antes de comprar o que não estava planejado.`;
+  }else msg="Nenhum impulso registrado este mês. 👏 (Marque a chavinha 😈 quando o gasto não for planejado — a honestidade é o segredo do jogo.)";
+  document.getElementById("aImpMsg").innerHTML=msg;
+  document.getElementById("aInsights").innerHTML=getInsights().map(([e,t])=>`<div class="insight"><span class="e">${e}</span><span>${t}</span></div>`).join("");
+}
+
+/* ================= IMPORT / EXPORT ================= */
+function parseDate(v){
+  if(v instanceof Date)return ds(v);
+  if(typeof v==="number"){const d=new Date(Math.round((v-25569)*864e5));return ds(new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));}
+  if(typeof v==="string"){
+    const m=v.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if(m)return `${m[3].length===2?"20"+m[3]:m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+    if(/^\d{4}-\d{2}-\d{2}/.test(v))return v.slice(0,10);
+  }
+  return null;
+}
+function importXlsx(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:"array",cellDates:true});
+      let nE=0,nI=0;
+      const gastos=wb.Sheets["Registro de Gastos"];
+      if(gastos){
+        XLSX.utils.sheet_to_json(gastos,{header:1}).forEach(row=>{
+          const d=parseDate(row[0]);const val=parseFloat(row[3]);
+          if(d&&val>0){S.expenses.push({id:uid(),d,cat:CATS.some(c=>c[0]===row[1])?row[1]:"Outros",desc:String(row[2]||""),val,imp:String(row[4]||"").toLowerCase().startsWith("s")});nE++;}
+        });
+      }
+      const renda=wb.Sheets["Renda"];
+      if(renda){
+        XLSX.utils.sheet_to_json(renda,{header:1}).forEach(row=>{
+          const d=parseDate(row[0]);const val=parseFloat(row[2]);
+          if(d&&val>0){S.incomes.push({id:uid(),d,src:String(row[1]||"Outros"),val,note:String(row[3]||"")});nI++;}
+        });
+      }
+      S.game.imported=true;
+      save();toast(`📥 Importado: ${nE} gastos, ${nI} rendas`);
+    }catch(err){toast("⚠️ Erro ao ler a planilha: "+err.message);}
+    inp.value="";
+  };
+  r.readAsArrayBuffer(f);
+}
+function exportJson(){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:"application/json"}));
+  a.download="grana-backup-"+todayStr()+".json";a.click();
+  toast("📦 Backup exportado");
+}
+function importJson(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{try{const d=JSON.parse(e.target.result);if(!d.v)throw new Error("arquivo inválido");S=Object.assign(structuredClone(DEF),d);save();toast("✓ Backup restaurado");}catch(err){toast("⚠️ "+err.message);}inp.value="";};
+  r.readAsText(f);
+}
+
+/* ================= NUVEM (Firebase) ================= */
+let fb={app:null,user:null,unsub:null,applying:false,timer:null};
+function getFbCfg(){try{return JSON.parse(localStorage.getItem("grana_fb"));}catch(e){return null;}}
+function saveFbCfg(){
+  let t=document.getElementById("fbCfg").value.trim();
+  const m=t.match(/\{[\s\S]*\}/);if(m)t=m[0];
+  try{
+    // aceita tanto JSON quanto o objeto JS colado do console do Firebase
+    let cfg;
+    try{cfg=JSON.parse(t);}catch(e){cfg=Function('"use strict";return ('+t+')')();}
+    if(!cfg.apiKey||!cfg.projectId)throw new Error("faltam apiKey/projectId");
+    localStorage.setItem("grana_fb",JSON.stringify(cfg));
+    toast("✓ Configuração salva");renderCloud();initCloud();
+  }catch(err){toast("⚠️ Configuração inválida: "+err.message);}
+}
+function resetFbCfg(){localStorage.removeItem("grana_fb");location.reload();}
+function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s);});}
+async function initCloud(){
+  const cfg=getFbCfg();if(!cfg)return renderCloud();
+  try{
+    if(!window.firebase){
+      await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
+      await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js");
+      await loadScript("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js");
+    }
+    if(!fb.app)fb.app=firebase.initializeApp(cfg);
+    firebase.auth().onAuthStateChanged(u=>{
+      fb.user=u;
+      if(fb.unsub){fb.unsub();fb.unsub=null;}
+      if(u){
+        S.game.cloudOn=true;
+        fb.unsub=firebase.firestore().collection("grana").doc(u.uid).onSnapshot(snap=>{
+          const remote=snap.data();
+          if(remote&&remote.updatedAt>S.updatedAt){
+            fb.applying=true;
+            S=Object.assign(structuredClone(DEF),remote);
+            localStorage.setItem("grana_data",JSON.stringify(S));
+            render();fb.applying=false;
+            toast("☁️ Dados sincronizados");
+          }else if(!remote){scheduleCloudSave();}
+        });
+        checkAchievements();
+      }
+      renderCloud();
+    });
+  }catch(err){toast("⚠️ Erro na nuvem: "+err.message);}
+}
+function cloudSignIn(){
+  if(!window.firebase)return initCloud().then(cloudSignIn);
+  const p=new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(p).catch(err=>{
+    if(err.code==="auth/operator-not-allowed"||err.code==="auth/popup-blocked")firebase.auth().signInWithRedirect(p);
+    else toast("⚠️ "+err.message);
+  });
+}
+function cloudSignOut(){firebase.auth().signOut();toast("Desconectado da nuvem");}
+function scheduleCloudSave(){
+  if(!fb.user||fb.applying)return;
+  clearTimeout(fb.timer);
+  fb.timer=setTimeout(()=>{
+    firebase.firestore().collection("grana").doc(fb.user.uid).set(JSON.parse(JSON.stringify(S)))
+      .catch(err=>toast("⚠️ Falha ao sincronizar: "+err.code));
+  },1200);
+}
+function renderCloud(){
+  const cfg=getFbCfg();
+  document.getElementById("cloudSetup").style.display=cfg?"none":"block";
+  document.getElementById("cloudLogin").style.display=cfg&&!fb.user?"block":"none";
+  document.getElementById("cloudOn").style.display=fb.user?"block":"none";
+  const dot=document.getElementById("cloudDot"),st=document.getElementById("cloudStatus");
+  if(fb.user){dot.classList.add("ok");st.textContent="Sincronizando em tempo real";
+    document.getElementById("cloudUser").innerHTML=`Conectado como <b>${fb.user.displayName||fb.user.email}</b>. Seus dados aparecem automaticamente em qualquer aparelho onde você fizer login.`;}
+  else{dot.classList.remove("ok");st.textContent=cfg?"Configurado — faça login para sincronizar":"Desconectado — dados só neste aparelho";}
+}
+
+/* ================= INIT ================= */
+document.querySelector("nav .nrow").insertAdjacentHTML("beforeend",`<button class="nbtn" data-v="me" onclick="go('me')"><span class="i">👤</span>Perfil</button>`);
+processPastWeeks();
+render();
+initCloud();
+checkAchievements();
+</script>
+</body>
+</html>
