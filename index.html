@@ -279,6 +279,8 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     <label>O que você quer conquistar?</label><input id="gName" placeholder="Ex.: PlayStation 5, viagem, celular novo">
     <label>Emoji</label><div class="chips" id="gEmojis"></div>
     <label>Valor necessário (R$)</label><input id="gTarget" type="number" inputmode="decimal">
+    <label>Plano de poupança (como fazer as contas)</label>
+    <div class="seg" id="gPerSeg"><button onclick="gPerSel('sem',this)" class="on">📅 Por semana</button><button onclick="gPerSel('mes',this)">🌙 Por mês</button></div>
     <button class="btn" style="margin-top:18px" onclick="saveGoal()">Criar meta</button>
   </div>
 </div>
@@ -504,7 +506,8 @@ function deleteTx(){
 
 /* ================= METAS ================= */
 function openGoalModal(){
-  gEmoji=GOAL_EMOJIS[0];
+  gEmoji=GOAL_EMOJIS[0];gPer="sem";
+  document.querySelectorAll("#gPerSeg button").forEach((b,i)=>b.classList.toggle("on",i===0));
   document.getElementById("gEmojis").innerHTML=GOAL_EMOJIS.map(e=>`<button class="chip ${e===gEmoji?'on':''}" onclick="gEmoji='${e}';openGoalEmojiSel(this)">${e}</button>`).join("");
   document.getElementById("gName").value="";document.getElementById("gTarget").value="";
   document.getElementById("mGoal").classList.add("on");
@@ -514,14 +517,34 @@ function saveGoal(){
   const name=document.getElementById("gName").value.trim();
   const target=parseFloat(document.getElementById("gTarget").value);
   if(!name||!target)return toast("⚠️ Preencha nome e valor");
-  S.goals.push({id:uid(),name,emoji:gEmoji,target,deposits:[]});
+  S.goals.push({id:uid(),name,emoji:gEmoji,target,per:gPer,deposits:[]});
   closeModal("mGoal");addXP(15,"mapa do tesouro traçado 🗺️");save();
 }
 function delGoal(id){
   const g=S.goals.find(x=>x.id===id);
   if(confirm(`Abandonar a trilha "${g.name}"? O ouro guardado volta ao saldo.`)){closeModal('mGoal2');S.goals=S.goals.filter(x=>x.id!==id);save();}
 }
-let curGoal=null;
+let curGoal=null,gPer="sem";
+function gPerSel(p,btn){gPer=p;document.querySelectorAll("#gPerSeg button").forEach(b=>b.classList.remove("on"));btn.classList.add("on");}
+function goalPace(g){ // ritmo semanal efetivo: sobras das últimas semanas OU ritmo dos depósitos
+  const r=weeklySavingRate();
+  if(r&&r>0)return{v:r,src:"sobras"};
+  const dep=g.deposits||[];
+  if(dep.length){
+    const first=dep.reduce((a,b)=>a.d<b.d?a:b);
+    const weeks=Math.max(1,(new Date()-pd(first.d))/6048e5);
+    const v=sum(dep)/weeks;
+    if(v>0)return{v,src:"baú"};
+  }
+  return null;
+}
+function g2DelDep(i){
+  const g=S.goals.find(x=>x.id===curGoal);if(!g||!g.deposits||!g.deposits[i])return;
+  const v=g.deposits[i].val;
+  g.deposits.splice(i,1);
+  toast(`Depósito de ${fmt0(v)} removido — voltou pro saldo`);
+  save();renderGoalDetail();
+}
 function avgWeeklyImpulse(){ // média semanal gasta em impulsos (últimas 4 semanas)
   const cur=weekStart(new Date());const vals=[];
   for(let i=1;i<=4;i++){const ws=new Date(cur);ws.setDate(ws.getDate()-7*i);const ex=weekExpenses(ws);if(ex.length)vals.push(sum(ex.filter(e=>e.imp)));}
@@ -531,14 +554,19 @@ function avgWeeklyImpulse(){ // média semanal gasta em impulsos (últimas 4 sem
 function openGoalDetail(id){curGoal=id;renderGoalDetail();document.getElementById("mGoal2").classList.add("on");}
 function renderGoalDetail(){
   const g=S.goals.find(x=>x.id===curGoal);if(!g)return;
+  const per=g.per||"sem",lbl=per==="mes"?"mês":"semana",f=per==="mes"?52/12:1;
   const got=sum(g.deposits||[]),falta=Math.max(0,g.target-got),pct=g.target?Math.min(100,100*got/g.target):0;
-  const rate=weeklySavingRate();
+  const pace=goalPace(g);
   const marks=[[0,"🏁"],[25,"🌵"],[50,"⛰️"],[75,"🐎"],[100,"🏆"]];
   const trail=marks.map(([p,e])=>`<div style="text-align:center;flex:1"><div style="font-size:1.3rem;${pct>=p?"":"opacity:.25;filter:grayscale(1)"}">${e}</div><div class="small" style="font-size:.6rem">${p}%</div></div>`).join("");
-  const max=Math.max(50,Math.ceil((weeklyBudget()||100)/5)*5,rate>0?Math.ceil(rate*2/5)*5:0);
-  const val=rate>0?Math.min(max,Math.max(5,Math.round(rate/5)*5)):25;
-  const proj=!falta?"🏆":(rate>0?Math.ceil(falta/rate)+" sem.":"—");
-  const last=(g.deposits||[]).slice(-5).reverse();
+  const step=per==="mes"?10:5;
+  const max=Math.max(step*10,Math.ceil(((weeklyBudget()||100)*f)/step)*step,pace?Math.ceil(pace.v*f*2/step)*step:0);
+  const val=pace?Math.min(max,Math.max(step,Math.round(pace.v*f/step)*step)):(per==="mes"?100:25);
+  let proj="—";
+  if(!falta)proj="🏆";
+  else if(pace){const n=Math.ceil(falta/(pace.v*f));proj=n+(per==="mes"?(n>1?" meses":" mês"):" sem.");}
+  const projNote=(!falta||pace)?"":`<div class="small" style="margin:4px 0 0;text-align:center">🌵 Guarde o 1º ouro (ou feche semanas com sobra) que eu calculo sua chegada, parceiro.</div>`;
+  const last=(g.deposits||[]).map((d,i)=>({...d,i})).slice(-6).reverse();
   document.getElementById("g2Body").innerHTML=`
   <h2 style="display:flex;justify-content:space-between;align-items:center">${g.emoji} ${g.name}<span class="small">${Math.round(pct)}% da trilha</span></h2>
   <div class="bar" style="height:12px"><div class="fill" style="width:${pct}%;background:linear-gradient(90deg,var(--purple),var(--blue))"></div></div>
@@ -546,40 +574,42 @@ function renderGoalDetail(){
   <div class="grid3" style="margin:16px 0 4px">
     <div><div class="n pos">${fmt0(got)}</div><div class="l">No baú</div></div>
     <div><div class="n ${falta?"neg":"pos"}">${fmt0(falta)}</div><div class="l">Falta</div></div>
-    <div><div class="n">${proj}</div><div class="l">Previsão atual</div></div>
-  </div>
+    <div><div class="n">${proj}</div><div class="l">Previsão atual${pace?` (ritmo do ${pace.src==="baú"?"seu baú":"que sobra"})`:""}</div></div>
+  </div>${projNote}
   <label>⛏️ Colocar ouro no baú agora</label>
   <div class="chips">${[10,25,50,100].map(v=>`<button class="chip" onclick="g2Deposit(${v})">+R$${v}</button>`).join("")}</div>
   <div class="row" style="margin-top:8px;gap:8px">
     <input id="g2Custom" type="number" inputmode="decimal" placeholder="Outro valor (R$)">
     <button class="btn sm" style="flex-shrink:0" onclick="g2Deposit(document.getElementById('g2Custom').value)">Guardar ⛏️</button>
   </div>
-  <label>🐎 Simulador de cavalgada</label>
-  <div class="row"><span class="small">Quanto guardar por semana?</span><b id="g2SliderVal" style="color:var(--acc)"></b></div>
-  <input type="range" id="g2Slider" min="5" max="${max}" step="5" value="${val}" oninput="g2Sim()" style="width:100%">
+  <label>🐎 Simulador de cavalgada <span class="mut" style="text-transform:none">(plano ${per==="mes"?"mensal":"semanal"})</span></label>
+  <div class="row"><span class="small">Quanto guardar por ${lbl}?</span><b id="g2SliderVal" style="color:var(--acc)"></b></div>
+  <input type="range" id="g2Slider" min="${step}" max="${max}" step="${step}" value="${val}" oninput="g2Sim()" style="width:100%">
   <div class="small" id="g2SimOut" style="margin-top:6px;line-height:1.55;background:var(--card2);border-radius:12px;padding:12px"></div>
   <label>🧾 Trilha percorrida</label>
-  <div>${last.length?last.map(d=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);font-size:.85rem"><span class="mut">${pd(d.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}</span><span class="pos">+${fmt0(d.val)}</span></div>`).join(""):`<div class="small">Nenhum ouro no baú ainda — comece com R$10, parceiro!</div>`}</div>
+  <div>${last.length?last.map(d=>`<div class="row" style="padding:5px 0;border-bottom:1px solid var(--line);font-size:.85rem"><span class="mut">${pd(d.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}</span><span style="margin-left:auto" class="pos">+${fmt0(d.val)}</span><button class="btn danger sm" style="padding:3px 10px" onclick="g2DelDep(${d.i})">✕</button></div>`).join(""):`<div class="small">Nenhum ouro no baú ainda — comece com R$10, parceiro!</div>`}</div>
   <button class="btn danger" style="margin-top:16px" onclick="delGoal('${g.id}')">🗑️ Abandonar esta trilha</button>`;
   g2Sim();
 }
 function g2Sim(){
   const g=S.goals.find(x=>x.id===curGoal);if(!g)return;
   const el=document.getElementById("g2Slider");if(!el)return;
+  const per=g.per||"sem",lbl=per==="mes"?"mês":"semana",f=per==="mes"?52/12:1,dias=per==="mes"?30.44:7;
+  const unid=n=>per==="mes"?(n>1?"meses":"mês"):`semana${n>1?"s":""}`;
   const falta=Math.max(0,g.target-sum(g.deposits||[]));
   const v=Number(el.value);
-  document.getElementById("g2SliderVal").textContent=fmt0(v)+"/semana";
+  document.getElementById("g2SliderVal").textContent=fmt0(v)+"/"+lbl;
   const out=document.getElementById("g2SimOut");
   if(!falta){out.innerHTML="🏆 Baú cheio! Essa trilha já foi vencida, parceiro.";return;}
-  const wks=Math.ceil(falta/v);const d=new Date();d.setDate(d.getDate()+wks*7);
-  let html=`Guardando <b>${fmt0(v)}</b> por semana, você crava a bandeira em <b>${wks} semana${wks>1?"s":""}</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})}).`;
-  const rate=weeklySavingRate();
-  if(rate>0){const cur=Math.ceil(falta/rate);
-    if(wks<cur)html+=` São <b>${cur-wks} semana${cur-wks>1?"s":""} a menos</b> que no seu ritmo atual! 🐎`;
-    else if(wks>cur)html+=` Seu ritmo atual (${fmt0(rate)}/sem) já vence essa marca, parceiro. 🤠`;}
-  const imp=avgWeeklyImpulse();
-  if(imp>=5){const wI=Math.ceil(falta/(v+imp));
-    if(wI<wks)html+=`<br><br>😈→⛏️ <b>E se os impulsos virarem ouro?</b> Você gasta ~${fmt0(imp)}/semana no gatilho rápido. Somando ao baú: <b>${wI} semana${wI>1?"s":""}</b> — ${wks-wI} a menos!`;}
+  const n=Math.ceil(falta/v);const d=new Date();d.setDate(d.getDate()+Math.round(n*dias));
+  let html=`Guardando <b>${fmt0(v)}</b> por ${lbl}, você crava a bandeira em <b>${n} ${unid(n)}</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})}).`;
+  const pace=goalPace(g);
+  if(pace){const pp=pace.v*f;const cur=Math.ceil(falta/pp);
+    if(n<cur)html+=` São <b>${cur-n} ${unid(cur-n)} a menos</b> que no seu ritmo atual! 🐎`;
+    else if(n>cur)html+=` Seu ritmo atual (${fmt0(pp)}/${lbl}) já vence essa marca, parceiro. 🤠`;}
+  const imp=avgWeeklyImpulse()*f;
+  if(imp>=5){const nI=Math.ceil(falta/(v+imp));
+    if(nI<n)html+=`<br><br>😈→⛏️ <b>E se os impulsos virarem ouro?</b> Você gasta ~${fmt0(imp)}/${lbl} no gatilho rápido. Somando ao baú: <b>${nI} ${unid(nI)}</b> — ${n-nI} a menos!`;}
   out.innerHTML=html;
 }
 function g2Deposit(v){
@@ -743,8 +773,9 @@ function renderGoals(){
   document.getElementById("gList").innerHTML=S.goals.map(g=>{
     const got=sum(g.deposits||[]);const p=g.target?Math.min(100,100*got/g.target):0;
     let proj="";
-    if(got<g.target&&rate>0){const wks=Math.ceil((g.target-got)/rate);const d=new Date();d.setDate(d.getDate()+wks*7);
-      proj=`🔮 No ritmo atual: <b>${wks} sem.</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})})`;}
+    const pace=goalPace(g);
+    if(got<g.target&&pace){const per=g.per||"sem";const f=per==="mes"?52/12:1;const n=Math.ceil((g.target-got)/(pace.v*f));const d=new Date();d.setDate(d.getDate()+Math.round(n*(per==="mes"?30.44:7)));
+      proj=`🔮 No ritmo atual: <b>${n} ${per==="mes"?(n>1?"meses":"mês"):"sem."}</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})})`;}
     else if(got>=g.target)proj=`🏆 <b>OURO ENCONTRADO!</b>`;
     return `<div class="card goal" style="cursor:pointer" onclick="openGoalDetail('${g.id}')"><div class="row" style="margin-bottom:8px">
       <span style="font-weight:700">${g.emoji} ${g.name}</span>
