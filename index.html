@@ -102,6 +102,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .mission.done{color:var(--mut);text-decoration:line-through}
 .mission .xp{margin-left:auto;font-size:.7rem;color:var(--purple);font-weight:700;text-decoration:none}
 canvas{max-width:100%}
+input[type=range]{padding:0;background:transparent;border:none;height:32px;accent-color:var(--acc)}
 .tabs2{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto}
 .pill{background:var(--card);border:1px solid var(--line);color:var(--mut);border-radius:20px;padding:7px 14px;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap}
 .pill.on{background:var(--acc2);color:#FAEEE5;border-color:var(--acc2)}
@@ -280,6 +281,11 @@ canvas{max-width:100%}
     <label>Valor necessário (R$)</label><input id="gTarget" type="number" inputmode="decimal">
     <button class="btn" style="margin-top:18px" onclick="saveGoal()">Criar meta</button>
   </div>
+</div>
+
+<!-- MODAL: detalhe da meta -->
+<div class="modal" id="mGoal2" onclick="if(event.target===this)closeModal('mGoal2')">
+  <div class="sheet" id="g2Body"></div>
 </div>
 
 <div id="toasts"></div>
@@ -513,7 +519,77 @@ function saveGoal(){
 }
 function delGoal(id){
   const g=S.goals.find(x=>x.id===id);
-  if(confirm(`Excluir a meta "${g.name}"? O valor guardado volta ao saldo.`)){S.goals=S.goals.filter(x=>x.id!==id);save();}
+  if(confirm(`Abandonar a trilha "${g.name}"? O ouro guardado volta ao saldo.`)){closeModal('mGoal2');S.goals=S.goals.filter(x=>x.id!==id);save();}
+}
+let curGoal=null;
+function avgWeeklyImpulse(){ // média semanal gasta em impulsos (últimas 4 semanas)
+  const cur=weekStart(new Date());const vals=[];
+  for(let i=1;i<=4;i++){const ws=new Date(cur);ws.setDate(ws.getDate()-7*i);const ex=weekExpenses(ws);if(ex.length)vals.push(sum(ex.filter(e=>e.imp)));}
+  if(!vals.length)return sum(weekExpenses(cur).filter(e=>e.imp));
+  return vals.reduce((a,b)=>a+b,0)/vals.length;
+}
+function openGoalDetail(id){curGoal=id;renderGoalDetail();document.getElementById("mGoal2").classList.add("on");}
+function renderGoalDetail(){
+  const g=S.goals.find(x=>x.id===curGoal);if(!g)return;
+  const got=sum(g.deposits||[]),falta=Math.max(0,g.target-got),pct=g.target?Math.min(100,100*got/g.target):0;
+  const rate=weeklySavingRate();
+  const marks=[[0,"🏁"],[25,"🌵"],[50,"⛰️"],[75,"🐎"],[100,"🏆"]];
+  const trail=marks.map(([p,e])=>`<div style="text-align:center;flex:1"><div style="font-size:1.3rem;${pct>=p?"":"opacity:.25;filter:grayscale(1)"}">${e}</div><div class="small" style="font-size:.6rem">${p}%</div></div>`).join("");
+  const max=Math.max(50,Math.ceil((weeklyBudget()||100)/5)*5,rate>0?Math.ceil(rate*2/5)*5:0);
+  const val=rate>0?Math.min(max,Math.max(5,Math.round(rate/5)*5)):25;
+  const proj=!falta?"🏆":(rate>0?Math.ceil(falta/rate)+" sem.":"—");
+  const last=(g.deposits||[]).slice(-5).reverse();
+  document.getElementById("g2Body").innerHTML=`
+  <h2 style="display:flex;justify-content:space-between;align-items:center">${g.emoji} ${g.name}<span class="small">${Math.round(pct)}% da trilha</span></h2>
+  <div class="bar" style="height:12px"><div class="fill" style="width:${pct}%;background:linear-gradient(90deg,var(--purple),var(--blue))"></div></div>
+  <div style="display:flex;margin:10px 0 0">${trail}</div>
+  <div class="grid3" style="margin:16px 0 4px">
+    <div><div class="n pos">${fmt0(got)}</div><div class="l">No baú</div></div>
+    <div><div class="n ${falta?"neg":"pos"}">${fmt0(falta)}</div><div class="l">Falta</div></div>
+    <div><div class="n">${proj}</div><div class="l">Previsão atual</div></div>
+  </div>
+  <label>⛏️ Colocar ouro no baú agora</label>
+  <div class="chips">${[10,25,50,100].map(v=>`<button class="chip" onclick="g2Deposit(${v})">+R$${v}</button>`).join("")}</div>
+  <div class="row" style="margin-top:8px;gap:8px">
+    <input id="g2Custom" type="number" inputmode="decimal" placeholder="Outro valor (R$)">
+    <button class="btn sm" style="flex-shrink:0" onclick="g2Deposit(document.getElementById('g2Custom').value)">Guardar ⛏️</button>
+  </div>
+  <label>🐎 Simulador de cavalgada</label>
+  <div class="row"><span class="small">Quanto guardar por semana?</span><b id="g2SliderVal" style="color:var(--acc)"></b></div>
+  <input type="range" id="g2Slider" min="5" max="${max}" step="5" value="${val}" oninput="g2Sim()" style="width:100%">
+  <div class="small" id="g2SimOut" style="margin-top:6px;line-height:1.55;background:var(--card2);border-radius:12px;padding:12px"></div>
+  <label>🧾 Trilha percorrida</label>
+  <div>${last.length?last.map(d=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);font-size:.85rem"><span class="mut">${pd(d.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}</span><span class="pos">+${fmt0(d.val)}</span></div>`).join(""):`<div class="small">Nenhum ouro no baú ainda — comece com R$10, parceiro!</div>`}</div>
+  <button class="btn danger" style="margin-top:16px" onclick="delGoal('${g.id}')">🗑️ Abandonar esta trilha</button>`;
+  g2Sim();
+}
+function g2Sim(){
+  const g=S.goals.find(x=>x.id===curGoal);if(!g)return;
+  const el=document.getElementById("g2Slider");if(!el)return;
+  const falta=Math.max(0,g.target-sum(g.deposits||[]));
+  const v=Number(el.value);
+  document.getElementById("g2SliderVal").textContent=fmt0(v)+"/semana";
+  const out=document.getElementById("g2SimOut");
+  if(!falta){out.innerHTML="🏆 Baú cheio! Essa trilha já foi vencida, parceiro.";return;}
+  const wks=Math.ceil(falta/v);const d=new Date();d.setDate(d.getDate()+wks*7);
+  let html=`Guardando <b>${fmt0(v)}</b> por semana, você crava a bandeira em <b>${wks} semana${wks>1?"s":""}</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})}).`;
+  const rate=weeklySavingRate();
+  if(rate>0){const cur=Math.ceil(falta/rate);
+    if(wks<cur)html+=` São <b>${cur-wks} semana${cur-wks>1?"s":""} a menos</b> que no seu ritmo atual! 🐎`;
+    else if(wks>cur)html+=` Seu ritmo atual (${fmt0(rate)}/sem) já vence essa marca, parceiro. 🤠`;}
+  const imp=avgWeeklyImpulse();
+  if(imp>=5){const wI=Math.ceil(falta/(v+imp));
+    if(wI<wks)html+=`<br><br>😈→⛏️ <b>E se os impulsos virarem ouro?</b> Você gasta ~${fmt0(imp)}/semana no gatilho rápido. Somando ao baú: <b>${wI} semana${wI>1?"s":""}</b> — ${wks-wI} a menos!`;}
+  out.innerHTML=html;
+}
+function g2Deposit(v){
+  const g=S.goals.find(x=>x.id===curGoal);if(!g)return;
+  v=Number(v);if(!v||v<=0)return toast("⚠️ Valor inválido, parceiro");
+  g.deposits=g.deposits||[];g.deposits.push({d:todayStr(),val:v});
+  const done=sum(g.deposits)>=g.target;
+  addXP(20,"ouro no cofre ⛏️");
+  if(done){toast(`🏆 OURO ENCONTRADO: ${g.name}!`);confetti();}
+  save();renderGoalDetail();
 }
 function weeklySavingRate(){ // média das últimas 4 semanas fechadas (renda - gasto)
   const cur=weekStart(new Date());const rates=[];
@@ -670,9 +746,9 @@ function renderGoals(){
     if(got<g.target&&rate>0){const wks=Math.ceil((g.target-got)/rate);const d=new Date();d.setDate(d.getDate()+wks*7);
       proj=`🔮 No ritmo atual: <b>${wks} sem.</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})})`;}
     else if(got>=g.target)proj=`🏆 <b>OURO ENCONTRADO!</b>`;
-    return `<div class="card goal"><div class="row" style="margin-bottom:8px">
+    return `<div class="card goal" style="cursor:pointer" onclick="openGoalDetail('${g.id}')"><div class="row" style="margin-bottom:8px">
       <span style="font-weight:700">${g.emoji} ${g.name}</span>
-      <button class="btn danger sm" onclick="delGoal('${g.id}')">✕</button></div>
+      <span class="small">abrir ficha ›</span></div>
       <div class="row" style="font-size:.85rem;margin-bottom:5px"><span class="pos">${fmt0(got)}</span><span class="mut">${fmt0(g.target)}</span></div>
       <div class="bar" style="height:10px"><div class="fill" style="width:${p}%;background:linear-gradient(90deg,var(--purple),var(--blue))"></div></div>
       <div class="small" style="margin-top:8px">${proj}</div></div>`;
