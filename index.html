@@ -139,8 +139,8 @@ canvas{max-width:100%}
       <div><div class="n" id="hWLeft">R$ 0</div><div class="l">Disponível</div></div>
     </div>
   </div>
-  <div class="card"><h3>🎯 Missões da semana</h3><div id="hMissions"></div></div>
-  <div class="card"><h3>Envelopes da semana</h3><div id="hEnvelopes"></div></div>
+  <div class="card"><h3>🤠 Missões do rancho</h3><div id="hMissions"></div></div>
+  <div class="card"><h3>Envelopes</h3><div id="hEnvelopes"></div></div>
   <div class="card"><h3>💡 Insights</h3><div id="hInsights"></div></div>
   <div class="card"><h3>Últimos lançamentos</h3><div id="hRecent"></div></div>
 </div>
@@ -161,7 +161,7 @@ canvas{max-width:100%}
   <div class="card"><h3>Gastos por categoria (mês)</h3><canvas id="cCat" height="220"></canvas></div>
   <div class="card"><h3>Semana a semana</h3><canvas id="cWeek" height="200"></canvas></div>
   <div class="card" style="border-color:rgba(222,142,112,.4)">
-    <h3 style="color:var(--red)">😈 Raio-X dos impulsos</h3>
+    <h3 style="color:var(--red)">🤠 Duelo contra os impulsos</h3>
     <div class="grid3" style="margin-bottom:14px">
       <div><div class="n neg" id="aImpTotal">R$ 0</div><div class="l">Por impulso (mês)</div></div>
       <div><div class="n" id="aImpPct">0%</div><div class="l">Dos seus gastos</div></div>
@@ -218,7 +218,7 @@ canvas{max-width:100%}
     <label id="sPaydayLbl">Dia que você recebe</label>
     <select id="sPayday"><option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option></select>
     <select id="sPaydayM" style="display:none"></select>
-    <label>Envelopes semanais (quanto pode gastar por categoria)</label>
+    <label>Envelopes — limite por categoria (escolha semanal ou mensal)</label>
     <div id="sEnv"></div>
     <div class="small" id="sEnvSum" style="margin-top:6px"></div>
     <button class="btn" style="margin-top:14px" onclick="saveSettings()">Salvar</button>
@@ -256,7 +256,7 @@ canvas{max-width:100%}
     <label>Valor (R$)</label><input id="txVal" type="number" inputmode="decimal" placeholder="0,00" step="0.01">
     <div id="txExpFields">
       <label>Categoria</label><div class="chips" id="txCats"></div>
-      <div class="tog" id="txImp" onclick="this.classList.toggle('on')"><div><b>😈 Foi por impulso?</b><div class="small">Não estava planejado, bateu a vontade e você comprou</div></div><div class="sw"></div></div>
+      <div class="tog" id="txImp" onclick="this.classList.toggle('on')"><div><b>😈 Foi no gatilho rápido?</b><div class="small">Não estava planejado — a vontade atacou e você sacou a carteira</div></div><div class="sw"></div></div>
     </div>
     <div id="txIncFields" style="display:none">
       <label>Fonte</label><div class="chips" id="txSrcs"></div>
@@ -274,7 +274,7 @@ canvas{max-width:100%}
 <!-- MODAL: meta -->
 <div class="modal" id="mGoal" onclick="if(event.target===this)closeModal('mGoal')">
   <div class="sheet">
-    <h2>Nova meta 🎯</h2>
+    <h2>Novo mapa do tesouro 🗺️</h2>
     <label>O que você quer conquistar?</label><input id="gName" placeholder="Ex.: PlayStation 5, viagem, celular novo">
     <label>Emoji</label><div class="chips" id="gEmojis"></div>
     <label>Valor necessário (R$)</label><input id="gTarget" type="number" inputmode="decimal">
@@ -289,7 +289,7 @@ canvas{max-width:100%}
 const CATS=[["Alimentação","🍔"],["Transporte","🚌"],["Lazer","🎮"],["Assinaturas","📺"],["Compras pessoais","🛍️"],["Educação","📚"],["Presentes","🎁"],["Outros","📦"]];
 const SRCS=[["Mesada semanal","👨‍👩‍👧"],["Salário/estágio","💼"],["Bico/freela","🛠️"],["Bônus/presente","🎁"],["Outros","💵"]];
 const GOAL_EMOJIS=["🎮","📱","✈️","💻","👟","🎸","🚗","🎓","💍","🏖️","📷","🛡️"];
-const LEVELS=[[0,"Estagiário do Cofrinho","🐣"],[100,"Aprendiz da Grana","🌱"],[300,"Guardião do Troco","🪙"],[600,"Ninja da Nota","🥷"],[1000,"Mestre dos Boletos","🧙"],[1600,"Lorde da Poupança","👑"],[2500,"Barão do Pix","💎"],[4000,"Lenda das Finanças","🐉"]];
+const LEVELS=[[0,"Peão de Primeira Viagem","🌵"],[100,"Aprendiz de Vaqueiro","🐴"],[300,"Caubói do Troco","🤠"],[600,"Domador de Boletos","🐂"],[1000,"Xerife da Poupança","⭐"],[1600,"Caçador de Recompensas","🏜️"],[2500,"Barão do Gado","🐎"],[4000,"Lenda do Velho Oeste","🌟"]];
 const WD=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
 const DEF={v:1,updatedAt:0,expenses:[],incomes:[],goals:[],
@@ -333,6 +333,8 @@ const sum=a=>a.reduce((t,x)=>t+Number(x.val||0),0);
 const savedTotal=()=>S.goals.reduce((t,g)=>t+sum(g.deposits||[]),0);
 // renda de referência por semana (se a renda for mensal, converte: x12 meses / 52 semanas)
 const weeklyBudget=()=>{const w=Number(S.settings.weeklyIncome||0);return S.settings.freq==="mes"?w*12/52:w;};
+// envelope: aceita formato antigo (número = semanal) e novo ({v,p})
+const envOf=e=>typeof e==="object"&&e!==null?{v:Number(e.v||0),p:e.p||"sem"}:{v:Number(e||0),p:"sem"};
 const monthKey=s=>s.slice(0,7);
 const thisMonth=()=>todayStr().slice(0,7);
 
@@ -359,12 +361,12 @@ function addXP(n,reason){
 function levelUp(){
   const L=levelInfo();
   const el=document.createElement("div");el.className="lvlup";
-  el.innerHTML=`<div class="e">${L.emoji}</div><div style="font-size:1.4rem;font-weight:800">Subiu de nível!</div><div style="color:var(--acc);font-weight:700">${L.name}</div><button class="btn" style="max-width:200px;margin-top:10px">Bora! 🚀</button>`;
+  el.innerHTML=`<div class="e">${L.emoji}</div><div style="font-size:1.4rem;font-weight:800">Subiu de posto, parceiro!</div><div style="color:var(--acc);font-weight:700">${L.name}</div><button class="btn" style="max-width:200px;margin-top:10px">A cavalgada continua! 🐎</button>`;
   el.querySelector("button").onclick=()=>el.remove();
   document.body.appendChild(el); confetti();
 }
 function confetti(){
-  const em=["🎉","✨","💰","🪙","⭐"];
+  const em=["🤠","⭐","💰","🪙","🌵"];
   for(let i=0;i<24;i++){const s=document.createElement("div");s.className="confetti";s.textContent=em[i%em.length];
     s.style.left=Math.random()*100+"vw";s.style.top="-40px";s.style.animationDelay=(Math.random()*.5)+"s";
     document.body.appendChild(s);setTimeout(()=>s.remove(),2200);}
@@ -381,20 +383,20 @@ function registerLogDay(dateStr){
 }
 
 const ACH=[
-["first","🍼","Primeiro passo","1º lançamento",s=>s.expenses.length+s.incomes.length>=1],
-["ten","✍️","Escriba","10 lançamentos",s=>s.expenses.length+s.incomes.length>=10],
-["fifty","📖","Historiador","50 lançamentos",s=>s.expenses.length+s.incomes.length>=50],
-["s7","🔥","Em chamas","7 dias seguidos registrando",()=>streak()>=7],
-["s30","🌋","Imparável","30 dias seguidos",()=>streak()>=30],
-["noimp","😇","Zen total","Semana fechada sem impulsos",s=>s.game.zenWeek],
-["budget","📮","Carteiro fiel","Semana dentro dos envelopes",s=>s.game.budgetWeek],
-["goal1","🎯","Sonhador","Primeira meta criada",s=>s.goals.length>=1],
-["goal50","⛰️","Meio do caminho","Meta 50% completa",s=>s.goals.some(g=>g.target>0&&sum(g.deposits||[])>=g.target/2)],
-["goalok","🏆","Conquistador","Meta 100% completa",s=>s.goals.some(g=>g.target>0&&sum(g.deposits||[])>=g.target)],
-["save100","🐷","Porquinho feliz","R$100 guardados",()=>savedTotal()>=100],
-["save500","🏦","Mini banqueiro","R$500 guardados",()=>savedTotal()>=500],
-["cloud","☁️","Nas nuvens","Sincronização ativada",s=>s.game.cloudOn],
-["import","📥","Migrador","Planilha importada",s=>s.game.imported]
+["first","🤠","Primeiro Laço","1º lançamento",s=>s.expenses.length+s.incomes.length>=1],
+["ten","🪢","Laçador","10 lançamentos",s=>s.expenses.length+s.incomes.length>=10],
+["fifty","📜","Cronista do Oeste","50 lançamentos",s=>s.expenses.length+s.incomes.length>=50],
+["s7","🔥","Fogueira Acesa","7 dias seguidos registrando",()=>streak()>=7],
+["s30","🌵","Cacto Resistente","30 dias seguidos",()=>streak()>=30],
+["noimp","🕊️","Gatilho Calmo","Semana fechada sem impulsos",s=>s.game.zenWeek],
+["budget","🐴","Rédeas Curtas","Semana dentro dos envelopes",s=>s.game.budgetWeek],
+["goal1","🗺️","Mapa do Tesouro","Primeira meta criada",s=>s.goals.length>=1],
+["goal50","⛰️","Meio da Trilha","Meta 50% completa",s=>s.goals.some(g=>g.target>0&&sum(g.deposits||[])>=g.target/2)],
+["goalok","🏆","Ouro Encontrado","Meta 100% completa",s=>s.goals.some(g=>g.target>0&&sum(g.deposits||[])>=g.target)],
+["save100","🐷","Cofre do Rancho","R$100 guardados",()=>savedTotal()>=100],
+["save500","🏦","Banco do Velho Oeste","R$500 guardados",()=>savedTotal()>=500],
+["cloud","🌤️","Céu Aberto","Sincronização ativada",s=>s.game.cloudOn],
+["import","🚂","Trem de Carga","Planilha importada",s=>s.game.imported]
 ];
 function checkAchievements(){
   ACH.forEach(([id,e,t])=>{
@@ -416,8 +418,8 @@ function processPastWeeks(){
   weeks.forEach(w=>{
     if(w>=cur||S.game.processedWeeks.includes(w))return;
     const ws=pd(w),ex=weekExpenses(ws);
-    const envTot=Object.values(S.settings.envelopes).reduce((a,b)=>a+Number(b||0),0);
-    if(envTot>0&&sum(ex)<=envTot){S.game.xp+=50;S.game.budgetWeek=true;}
+    const wenv=Object.entries(S.settings.envelopes).map(([c,v])=>[c,envOf(v)]).filter(([c,v])=>v.v>0&&v.p!=="mes");
+    if(wenv.length&&wenv.every(([c,v])=>sum(ex.filter(x=>x.cat===c))<=v.v)){S.game.xp+=50;S.game.budgetWeek=true;}
     if(ex.length&&!ex.some(e=>e.imp)){S.game.xp+=30;S.game.zenWeek=true;}
     S.game.processedWeeks.push(w);changed=true;
   });
@@ -473,17 +475,17 @@ function saveTx(){
   if(txType==="exp"){
     const imp=document.getElementById("txImp").classList.contains("on");
     S.expenses.push({id:uid(),d,cat:txCat,desc,val,imp});
-    registerLogDay(d);addXP(10,imp?"registrado (mesmo sendo impulso, anotar já é vitória 😄)":"gasto registrado");
+    registerLogDay(d);addXP(10,imp?"laçado (até impulso anotado conta, parceiro 🤠)":"gasto laçado 🤠");
   }else if(txType==="inc"){
     S.incomes.push({id:uid(),d,src:txSrc,val,note:desc});
-    registerLogDay(d);addXP(10,"renda registrada");
+    registerLogDay(d);addXP(10,"dinheiro no alforje 💰");
   }else{
     const gid=document.getElementById("txGoal").value;
     const g=S.goals.find(x=>x.id===gid);
     if(!g)return toast("⚠️ Crie uma meta primeiro");
     g.deposits=g.deposits||[];g.deposits.push({d,val});
-    addXP(20,"dinheiro guardado 🐷");
-    if(sum(g.deposits)>=g.target)toast(`🏆 META COMPLETA: ${g.name}!`);
+    addXP(20,"ouro no cofre ⛏️");
+    if(sum(g.deposits)>=g.target)toast(`🏆 OURO ENCONTRADO: ${g.name}!`);
   }
   closeModal("mTx");save();
 }
@@ -507,7 +509,7 @@ function saveGoal(){
   const target=parseFloat(document.getElementById("gTarget").value);
   if(!name||!target)return toast("⚠️ Preencha nome e valor");
   S.goals.push({id:uid(),name,emoji:gEmoji,target,deposits:[]});
-  closeModal("mGoal");addXP(15,"meta criada");save();
+  closeModal("mGoal");addXP(15,"mapa do tesouro traçado 🗺️");save();
 }
 function delGoal(id){
   const g=S.goals.find(x=>x.id===id);
@@ -552,10 +554,11 @@ function getInsights(){
     const g=S.goals.find(g=>sum(g.deposits||[])<g.target);
     if(g){const falta=g.target-sum(g.deposits||[]);
       out.push(["🎯",`Esse valor cobriria <b>${Math.min(100,Math.round(100*v/falta))}%</b> do que falta para ${g.emoji} ${g.name}.`]);}
-  }else if(mex.length){out.push(["😇",`Nenhum gasto por impulso este mês. Nível zen!`]);}
+  }else if(mex.length){out.push(["😇",`Nenhum gasto por impulso este mês. Gatilho mais calmo do oeste!`]);}
   // envelopes estourando
-  Object.entries(S.settings.envelopes).forEach(([c,lim])=>{
-    if(!lim)return;const spent=sum(wex.filter(e=>e.cat===c));
+  Object.entries(S.settings.envelopes).forEach(([c,raw])=>{
+    const en=envOf(raw);const lim=en.v;if(!lim)return;
+    const spent=sum((en.p==="mes"?mex:wex).filter(e=>e.cat===c));
     if(spent>lim)out.push(["🚨",`Envelope <b>${c}</b> estourou: ${fmt0(spent)} de ${fmt0(lim)}.`]);
     else if(spent>lim*0.8)out.push(["⚠️",`Envelope <b>${c}</b> quase no limite (${Math.round(100*spent/lim)}%).`]);
   });
@@ -566,14 +569,14 @@ function getInsights(){
     const falta=g.target-sum(g.deposits||[]);
     if(rate>0){const wks=Math.ceil(falta/rate);const d=new Date();d.setDate(d.getDate()+wks*7);
       out.push(["🔮",`No ritmo atual (sobra de ${fmt0(rate)}/semana), você conquista ${g.emoji} <b>${g.name}</b> em <b>${wks} semana${wks>1?"s":""}</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}).`]);}
-    else out.push(["🔮",`No ritmo atual você não está sobrando nada para ${g.emoji} ${g.name}. Que tal apertar um envelope?`]);
+    else out.push(["🔮",`No ritmo atual você não está sobrando nada para ${g.emoji} ${g.name}. Que tal apertar as rédeas de um envelope, parceiro?`]);
   }
   // próximo pagamento
   const np=nextPayday();
   const dd=Math.round((np-new Date(new Date().setHours(0,0,0,0)))/864e5);
   if(dd>0)out.push(["💵",`Próximo pagamento em <b>${dd} dia${dd>1?"s":""}</b> (${np.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}).`]);
   else if(dd===0)out.push(["💵",`<b>Hoje é dia de pagamento!</b> 🎉 Não esqueça de registrar a entrada.`]);
-  if(!out.length)out.push(["👋",`Registre seus gastos e rendas para eu gerar insights personalizados!`]);
+  if(!out.length)out.push(["🤠",`Lace seus gastos e rendas e eu te trago as notícias do rancho, parceiro!`]);
   return out;
 }
 
@@ -612,24 +615,27 @@ function renderHome(){
   // missões
   const daysLogged=[...Array(7)].filter((_,i)=>{const d=new Date(ws);d.setDate(d.getDate()+i);return d<=new Date()&&S.game.logDates.includes(ds(d));}).length;
   const daysSoFar=Math.min(7,Math.floor((new Date()-ws)/864e5)+1);
-  const envTot=Object.values(S.settings.envelopes).reduce((a,b)=>a+Number(b||0),0);
+  const mexM=S.expenses.filter(x=>monthKey(x.d)===thisMonth());
+  const envsAll=Object.entries(S.settings.envelopes).map(([c,v])=>[c,envOf(v)]).filter(([c,v])=>v.v>0);
+  const envOk=envsAll.length>0&&envsAll.every(([c,v])=>sum((v.p==="mes"?mexM:wex).filter(x=>x.cat===c))<=v.v);
   const noImp=!wex.some(e=>e.imp);
   const missions=[
-    [daysLogged>=daysSoFar&&daysLogged>0,`Registrar todo dia (${daysLogged}/${daysSoFar})`,"+50 XP no fim da semana"],
-    [envTot>0?wOut<=envTot:false,envTot>0?`Ficar dentro dos envelopes (${fmt0(wOut)}/${fmt0(envTot)})`:"Configure envelopes no Perfil","+50 XP"],
-    [noImp&&wex.length>0,wex.length?`Zero impulsos esta semana`:"Zero impulsos (registre gastos)","+30 XP"]
+    [daysLogged>=daysSoFar&&daysLogged>0,`Marcar o gado todo dia (${daysLogged}/${daysSoFar})`,"+50 XP no fim da semana"],
+    [envOk,envsAll.length?`Segurar as rédeas dos envelopes`:"Monte seus envelopes no Perfil","+50 XP"],
+    [noImp&&wex.length>0,wex.length?`Gatilho calmo: zero impulsos`:"Gatilho calmo (lace seus gastos)","+30 XP"]
   ];
   document.getElementById("hMissions").innerHTML=missions.map(([done,txt,xp])=>`<div class="mission ${done?"done":""}"><div class="chk">${done?"✓":""}</div><span>${txt}</span><span class="xp">${xp}</span></div>`).join("");
-  // envelopes
-  const envs=Object.entries(S.settings.envelopes).filter(([c,v])=>v>0);
-  document.getElementById("hEnvelopes").innerHTML=envs.length?envs.map(([c,lim])=>{
-    const spent=sum(wex.filter(e=>e.cat===c));const p=Math.min(100,100*spent/lim);
-    return `<div class="env"><div class="row"><span>${catEmoji(c)} ${c}</span><span class="${spent>lim?"neg":"mut"}">${fmt0(spent)} / ${fmt0(lim)}</span></div><div class="bar"><div class="fill ${spent>lim?"over":p>80?"warn":""}" style="width:${p}%"></div></div></div>`;
-  }).join(""):`<div class="empty">Defina envelopes semanais no Perfil 👤 e eu te mostro quanto ainda pode gastar em cada categoria.</div>`;
+  // envelopes (cada um com período próprio)
+  const mexH=S.expenses.filter(x=>monthKey(x.d)===thisMonth());
+  const envs=Object.entries(S.settings.envelopes).map(([c,v])=>[c,envOf(v)]).filter(([c,v])=>v.v>0);
+  document.getElementById("hEnvelopes").innerHTML=envs.length?envs.map(([c,en])=>{
+    const spent=sum((en.p==="mes"?mexH:wex).filter(e=>e.cat===c));const lim=en.v;const p=Math.min(100,100*spent/lim);
+    return `<div class="env"><div class="row"><span>${catEmoji(c)} ${c} <span class="mut" style="font-size:.65rem">(${en.p==="mes"?"mês":"semana"})</span></span><span class="${spent>lim?"neg":"mut"}">${fmt0(spent)} / ${fmt0(lim)}</span></div><div class="bar"><div class="fill ${spent>lim?"over":p>80?"warn":""}" style="width:${p}%"></div></div></div>`;
+  }).join(""):`<div class="empty">Monte seus envelopes no Perfil 👤 (semanais ou mensais) e eu te mostro quanto ainda dá pra gastar, parceiro.</div>`;
   document.getElementById("hInsights").innerHTML=getInsights().slice(0,4).map(([e,t])=>`<div class="insight"><span class="e">${e}</span><span>${t}</span></div>`).join("");
   // recentes
   const all=allTx().slice(0,5);
-  document.getElementById("hRecent").innerHTML=all.length?all.map(txRow).join(""):`<div class="empty">Toque no botão <b style="color:var(--acc)">＋</b> para registrar seu primeiro lançamento!</div>`;
+  document.getElementById("hRecent").innerHTML=all.length?all.map(txRow).join(""):`<div class="empty">Toque no botão <b style="color:var(--acc)">＋</b> para laçar seu primeiro gasto, parceiro!</div>`;
 }
 function allTx(){
   const a=[...S.expenses.map(e=>({type:"exp",item:e})),...S.incomes.map(i=>({type:"inc",item:i}))];
@@ -663,20 +669,20 @@ function renderGoals(){
     let proj="";
     if(got<g.target&&rate>0){const wks=Math.ceil((g.target-got)/rate);const d=new Date();d.setDate(d.getDate()+wks*7);
       proj=`🔮 No ritmo atual: <b>${wks} sem.</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})})`;}
-    else if(got>=g.target)proj=`🏆 <b>META COMPLETA!</b>`;
+    else if(got>=g.target)proj=`🏆 <b>OURO ENCONTRADO!</b>`;
     return `<div class="card goal"><div class="row" style="margin-bottom:8px">
       <span style="font-weight:700">${g.emoji} ${g.name}</span>
       <button class="btn danger sm" onclick="delGoal('${g.id}')">✕</button></div>
       <div class="row" style="font-size:.85rem;margin-bottom:5px"><span class="pos">${fmt0(got)}</span><span class="mut">${fmt0(g.target)}</span></div>
       <div class="bar" style="height:10px"><div class="fill" style="width:${p}%;background:linear-gradient(90deg,var(--purple),var(--blue))"></div></div>
       <div class="small" style="margin-top:8px">${proj}</div></div>`;
-  }).join("")||`<div class="card"><div class="empty">🎯 Crie uma meta (um jogo, uma viagem, um celular...) e use o botão ＋ → 🐷 Guardar para colocar dinheiro nela.<br><br>Eu calculo quando você vai conseguir!</div></div>`;
+  }).join("")||`<div class="card"><div class="empty">🗺️ Trace seu mapa do tesouro (um jogo, uma viagem, um celular...) e use o botão ＋ → 🐷 Guardar para encher o baú.<br><br>Eu calculo quando você chega lá, parceiro!</div></div>`;
 }
 function renderMe(){
   const L=levelInfo();
   document.getElementById("pEmoji").textContent=L.emoji;
   document.getElementById("pLvl").textContent=(S.settings.name?S.settings.name+" · ":"")+L.name;
-  document.getElementById("pXp").textContent=S.game.xp+" XP"+(L.next?` · faltam ${L.next[0]-S.game.xp} para ${L.next[2]} ${L.next[1]}`:" · nível máximo! 🐉");
+  document.getElementById("pXp").textContent=S.game.xp+" XP"+(L.next?` · faltam ${L.next[0]-S.game.xp} para ${L.next[2]} ${L.next[1]}`:" · posto máximo do oeste! 🌟");
   document.getElementById("pAchN").textContent=S.game.ach.length;
   document.getElementById("pAchT").textContent=ACH.length;
   document.getElementById("pAch").innerHTML=ACH.map(([id,e,t,d])=>`<div class="abox ${S.game.ach.includes(id)?"":"lock"}"><div class="e">${e}</div><div class="t">${t}</div><div class="s">${d}</div></div>`).join("");
@@ -690,7 +696,7 @@ function renderMe(){
     if(!pm.options.length)pm.innerHTML=[...Array(31)].map((_,i)=>`<option value="${i+1}">Dia ${i+1}</option>`).join("");
     pm.value=S.settings.paydayM||5;
     freqUi(false);
-    document.getElementById("sEnv").innerHTML=CATS.map(([c,e])=>`<div class="row" style="margin-top:8px"><span style="font-size:.85rem;flex:1">${e} ${c}</span><input data-env="${c}" type="number" inputmode="decimal" value="${S.settings.envelopes[c]||""}" placeholder="—" style="width:110px" oninput="envSum()"></div>`).join("");
+    document.getElementById("sEnv").innerHTML=CATS.map(([c,e])=>{const en=envOf(S.settings.envelopes[c]);return `<div class="row" style="margin-top:8px"><span style="font-size:.85rem;flex:1">${e} ${c}</span><input data-env="${c}" type="number" inputmode="decimal" value="${en.v||""}" placeholder="—" style="width:84px" oninput="envSum()"><select data-envp="${c}" style="width:92px" onchange="envSum()"><option value="sem"${en.p!=="mes"?" selected":""}>/semana</option><option value="mes"${en.p==="mes"?" selected":""}>/mês</option></select></div>`;}).join("");
     envSum();
   }
 }
@@ -717,11 +723,11 @@ function nextPayday(){ // próxima data de pagamento
   const d=new Date(now);d.setDate(d.getDate()+(diff===0?7:diff));return d;
 }
 function envSum(){
-  let t=0;document.querySelectorAll("[data-env]").forEach(i=>t+=Number(i.value||0));
+  let t=0;document.querySelectorAll("[data-env]").forEach(i=>{const v=Number(i.value||0);if(!v)return;const sel=document.querySelector('[data-envp="'+i.dataset.env+'"]');t+=(sel&&sel.value==="mes")?v*12/52:v;});
   const mes=document.getElementById("sFreq").value==="mes";
   const raw=Number(document.getElementById("sWeekly").value||S.settings.weeklyIncome||0);
   const w=mes?raw*12/52:raw;
-  document.getElementById("sEnvSum").innerHTML=t?`Total dos envelopes: <b>${fmt0(t)}</b> de <b>${fmt0(w)}</b> por semana${mes?` (sua renda mensal de ${fmt0(raw)} ≈ ${fmt0(w)}/semana)`:""} → sobra <b class="${w-t>=0?"pos":"neg"}">${fmt0(w-t)}</b> para guardar 🐷`:"";
+  document.getElementById("sEnvSum").innerHTML=t?`Total dos envelopes ≈ <b>${fmt0(t)}</b> de <b>${fmt0(w)}</b> por semana${mes?` (sua renda mensal de ${fmt0(raw)} ≈ ${fmt0(w)}/semana)`:""} → sobra <b class="${w-t>=0?"pos":"neg"}">${fmt0(w-t)}</b> para guardar 🐷`:"";
 }
 function saveSettings(){
   S.settings.name=document.getElementById("sName").value.trim();
@@ -729,7 +735,7 @@ function saveSettings(){
   S.settings.weeklyIncome=Number(document.getElementById("sWeekly").value||0);
   S.settings.payday=Number(document.getElementById("sPayday").value);
   S.settings.paydayM=Number(document.getElementById("sPaydayM").value||5);
-  const env={};document.querySelectorAll("[data-env]").forEach(i=>{if(Number(i.value)>0)env[i.dataset.env]=Number(i.value);});
+  const env={};document.querySelectorAll("[data-env]").forEach(i=>{const v=Number(i.value);if(v>0){const sel=document.querySelector('[data-envp="'+i.dataset.env+'"]');env[i.dataset.env]={v,p:sel?sel.value:"sem"};}});
   S.settings.envelopes=env;
   save();toast("✓ Configurações salvas");
 }
@@ -770,8 +776,8 @@ function renderCharts(){
     const topC=Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
     msg=`Seus impulsos atacam mais em <b>${topC[0]}</b>${worst?` e nas <b>${WD[worst[0]]}s</b>`:""}. `;
     const yearly=sum(imp)*12;
-    msg+=`Nesse ritmo, são <b>${fmt0(yearly)}/ano</b> em compras não planejadas. Regra de ouro: espere 24h antes de comprar o que não estava planejado.`;
-  }else msg="Nenhum impulso registrado este mês. 👏 (Marque a chavinha 😈 quando o gasto não for planejado — a honestidade é o segredo do jogo.)";
+    msg+=`Nesse ritmo, são <b>${fmt0(yearly)}/ano</b> em compras não planejadas. Lei do oeste: espere 24h antes de sacar a carteira, parceiro.`;
+  }else msg="Nenhum gatilho rápido este mês, parceiro. 👏 (Marque a chavinha 😈 quando o gasto não for planejado — honestidade é a lei do rancho.)";
   document.getElementById("aImpMsg").innerHTML=msg;
   document.getElementById("aInsights").innerHTML=getInsights().map(([e,t])=>`<div class="insight"><span class="e">${e}</span><span>${t}</span></div>`).join("");
 }
