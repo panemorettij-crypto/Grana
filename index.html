@@ -212,8 +212,10 @@ canvas{max-width:100%}
   <div class="card">
     <h3>⚙️ Configurações</h3>
     <label>Seu nome</label><input id="sName" placeholder="Como te chamamos?">
-    <label>Quanto você recebe por semana (R$)</label><input id="sWeekly" type="number" inputmode="decimal">
-    <label>Dia que você recebe</label>
+    <label>Com que frequência você recebe?</label>
+    <select id="sFreq" onchange="freqUi()"><option value="sem">Semanal</option><option value="mes">Mensal</option></select>
+    <label id="sWeeklyLbl">Quanto você recebe por semana (R$)</label><input id="sWeekly" type="number" inputmode="decimal" oninput="envSum()">
+    <label id="sPaydayLbl">Dia que você recebe</label>
     <select id="sPayday"><option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option></select>
     <label>Envelopes semanais (quanto pode gastar por categoria)</label>
     <div id="sEnv"></div>
@@ -290,7 +292,7 @@ const LEVELS=[[0,"Estagiário do Cofrinho","🐣"],[100,"Aprendiz da Grana","�
 const WD=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
 const DEF={v:1,updatedAt:0,expenses:[],incomes:[],goals:[],
-  settings:{name:"",weeklyIncome:100,payday:1,envelopes:{}},
+  settings:{name:"",weeklyIncome:100,payday:1,freq:"sem",envelopes:{}},
   game:{xp:0,logDates:[],processedWeeks:[],ach:[]}};
 
 let S=load(), listFilter="all", txType="exp", txCat=CATS[0][0], txSrc=SRCS[0][0], editTx=null, gEmoji=GOAL_EMOJIS[0];
@@ -327,6 +329,8 @@ function weekExpenses(ws){return S.expenses.filter(e=>inWeek(e.d,ws));}
 function weekIncomes(ws){return S.incomes.filter(i=>inWeek(i.d,ws));}
 const sum=a=>a.reduce((t,x)=>t+Number(x.val||0),0);
 const savedTotal=()=>S.goals.reduce((t,g)=>t+sum(g.deposits||[]),0);
+// renda de referência por semana (se a renda for mensal, converte: x12 meses / 52 semanas)
+const weeklyBudget=()=>{const w=Number(S.settings.weeklyIncome||0);return S.settings.freq==="mes"?w*12/52:w;};
 const monthKey=s=>s.slice(0,7);
 const thisMonth=()=>todayStr().slice(0,7);
 
@@ -593,7 +597,7 @@ function renderHome(){
   document.getElementById("hSub").innerHTML=`💰 ${fmt0(totalInc)} recebido · 💸 ${fmt0(totalEx)} gasto · 🐷 ${fmt0(saved)} guardado`;
   const we=new Date(ws);we.setDate(we.getDate()+6);
   document.getElementById("hWeekTitle").textContent=`Semana ${ws.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} – ${we.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}`;
-  const wIn=sum(winc)||Number(S.settings.weeklyIncome||0);
+  const wIn=sum(winc)||weeklyBudget();
   const wOut=sum(wex),wLeft=wIn-wOut;
   document.getElementById("hWIn").textContent=fmt0(sum(winc));
   document.getElementById("hWOut").textContent=fmt0(wOut);
@@ -672,19 +676,30 @@ function renderMe(){
   // settings
   if(document.activeElement.tagName!=="INPUT"){
     document.getElementById("sName").value=S.settings.name||"";
+    document.getElementById("sFreq").value=S.settings.freq||"sem";
     document.getElementById("sWeekly").value=S.settings.weeklyIncome||"";
     document.getElementById("sPayday").value=S.settings.payday;
+    freqUi(false);
     document.getElementById("sEnv").innerHTML=CATS.map(([c,e])=>`<div class="row" style="margin-top:8px"><span style="font-size:.85rem;flex:1">${e} ${c}</span><input data-env="${c}" type="number" inputmode="decimal" value="${S.settings.envelopes[c]||""}" placeholder="—" style="width:110px" oninput="envSum()"></div>`).join("");
     envSum();
   }
 }
+function freqUi(recalc=true){
+  const mes=document.getElementById("sFreq").value==="mes";
+  document.getElementById("sWeeklyLbl").textContent=mes?"Quanto você recebe por mês (R$)":"Quanto você recebe por semana (R$)";
+  document.getElementById("sPaydayLbl").textContent=mes?"Dia em que sua semana de envelopes reinicia":"Dia que você recebe";
+  if(recalc)envSum();
+}
 function envSum(){
   let t=0;document.querySelectorAll("[data-env]").forEach(i=>t+=Number(i.value||0));
-  const w=Number(document.getElementById("sWeekly").value||S.settings.weeklyIncome||0);
-  document.getElementById("sEnvSum").innerHTML=t?`Total dos envelopes: <b>${fmt0(t)}</b> de ${fmt0(w)} semanais → sobra <b class="${w-t>=0?"pos":"neg"}">${fmt0(w-t)}</b> para guardar 🐷`:"";
+  const mes=document.getElementById("sFreq").value==="mes";
+  const raw=Number(document.getElementById("sWeekly").value||S.settings.weeklyIncome||0);
+  const w=mes?raw*12/52:raw;
+  document.getElementById("sEnvSum").innerHTML=t?`Total dos envelopes: <b>${fmt0(t)}</b> de <b>${fmt0(w)}</b> por semana${mes?` (sua renda mensal de ${fmt0(raw)} ≈ ${fmt0(w)}/semana)`:""} → sobra <b class="${w-t>=0?"pos":"neg"}">${fmt0(w-t)}</b> para guardar 🐷`:"";
 }
 function saveSettings(){
   S.settings.name=document.getElementById("sName").value.trim();
+  S.settings.freq=document.getElementById("sFreq").value;
   S.settings.weeklyIncome=Number(document.getElementById("sWeekly").value||0);
   S.settings.payday=Number(document.getElementById("sPayday").value);
   const env={};document.querySelectorAll("[data-env]").forEach(i=>{if(Number(i.value)>0)env[i.dataset.env]=Number(i.value);});
