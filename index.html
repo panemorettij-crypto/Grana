@@ -149,6 +149,13 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 
 <!-- ============ EXTRATO ============ -->
 <div class="view" id="v-list">
+  <div class="card" style="padding:10px 14px;margin-bottom:12px">
+    <div class="row">
+      <button class="btn sec sm" onclick="listShift(-1)">◀</button>
+      <div style="text-align:center;flex:1"><b id="lMonth" style="text-transform:capitalize"></b><div class="small" id="lSum" style="margin-top:2px"></div></div>
+      <button class="btn sec sm" id="lNext" onclick="listShift(1)">▶</button>
+    </div>
+  </div>
   <div class="tabs2">
     <button class="pill on" data-f="all" onclick="listFilter='all';render()">Tudo</button>
     <button class="pill" data-f="exp" onclick="listFilter='exp';render()">Gastos</button>
@@ -170,6 +177,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     </div>
   </div>
   <div class="card"><h3>Lançamentos da fatura</h3><div id="ccList"></div></div>
+  <div class="card"><h3>🗂️ Faturas anteriores</h3><div id="ccPrev"></div></div>
   <div class="card">
     <h3>🔁 Contas recorrentes</h3>
     <div class="small" id="bTotal" style="margin-bottom:6px"></div>
@@ -350,7 +358,7 @@ const DEF={v:1,updatedAt:0,expenses:[],incomes:[],goals:[],bills:[],
   settings:{name:"",weeklyIncome:100,payday:1,paydayM:5,freq:"sem",envelopes:{},customCats:[],cardClose:28,cardDue:5},
   game:{xp:0,logDates:[],processedWeeks:[],ach:[]}};
 
-let S=load(), listFilter="all", txType="exp", txCat=CATS[0][0], txSrc=SRCS[0][0], editTx=null, gEmoji=GOAL_EMOJIS[0];
+let S=load(), listFilter="all", listMonth="", txType="exp", txCat=CATS[0][0], txSrc=SRCS[0][0], editTx=null, gEmoji=GOAL_EMOJIS[0];
 let charts={};
 
 function load(){
@@ -705,6 +713,13 @@ function cardCycleStart(){ // data do último fechamento (fatura aberta = compra
   const dd=Math.min(c,new Date(y,m+1,0).getDate());
   return new Date(y,m,dd);
 }
+function cycleBoundary(k){ // k=0 → início da fatura aberta; k>0 → k ciclos antes
+  const c=Number(S.settings.cardClose||28);
+  const s=cardCycleStart();
+  const d=new Date(s.getFullYear(),s.getMonth()-k,1);
+  const dd=Math.min(c,new Date(d.getFullYear(),d.getMonth()+1,0).getDate());
+  return new Date(d.getFullYear(),d.getMonth(),dd);
+}
 function saveCard(){
   S.settings.cardClose=Number(document.getElementById("ccClose").value);
   S.settings.cardDue=Number(document.getElementById("ccDue").value);
@@ -721,6 +736,21 @@ function renderBills(){
   const nx=new Date(start);nx.setMonth(nx.getMonth()+1);
   document.getElementById("ccInfo").innerHTML=`${cc.length} lançamento${cc.length!==1?"s":""} desde ${start.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · fecha ${nx.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · vence dia ${due}`;
   document.getElementById("ccList").innerHTML=cc.slice(0,8).map(e=>`<div class="tx" onclick='openTxModal(${JSON.stringify({type:"exp",item:e}).replace(/'/g,"&#39;")})'><div class="ico">${catEmoji(e.cat)}</div><div class="inf"><div class="d1">${e.desc||e.cat}${e.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · ${e.cat}</div></div><div class="val neg">−${fmt0(e.val)}</div></div>`).join("")||`<div class="empty">Nenhum gasto no cartão nesta fatura. Ao laçar um gasto, ative a chavinha 💳, parceiro.</div>`;
+  // faturas anteriores (últimos 6 ciclos)
+  let prev="";
+  for(let i=1;i<=6;i++){
+    const a=cycleBoundary(i),b=cycleBoundary(i-1);
+    const items=S.expenses.filter(e=>e.cc&&pd(e.d)>a&&pd(e.d)<=b).sort((x,y)=>y.d.localeCompare(x.d));
+    if(!items.length)continue;
+    const pid="ccp"+i;
+    prev+=`<div style="border-bottom:1px solid var(--line)">
+      <div class="row" style="padding:10px 0;cursor:pointer" onclick="const e=document.getElementById('${pid}');e.style.display=e.style.display==='none'?'block':'none'">
+        <span style="font-weight:600">🧾 Fechada em ${b.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})}</span>
+        <span style="font-weight:700">${fmt0(sum(items))} <span class="mut" style="font-weight:400;font-size:.75rem">${items.length} itens ▾</span></span></div>
+      <div id="${pid}" style="display:none;padding-bottom:10px">${items.map(e=>`<div class="row" style="padding:4px 0;font-size:.83rem"><span class="mut">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · ${catEmoji(e.cat)} ${e.desc||e.cat}</span><span class="neg">−${fmt0(e.val)}</span></div>`).join("")}</div>
+    </div>`;
+  }
+  document.getElementById("ccPrev").innerHTML=prev||`<div class="empty">Faturas fechadas aparecem aqui com o passar dos meses, parceiro.</div>`;
   const m=thisMonth(),today=new Date().getDate();
   const bills=S.bills||[];
   document.getElementById("bTotal").innerHTML=bills.length?`Total fixo: <b>${fmt0(bills.reduce((a,b)=>a+Number(b.val),0))}/mês</b>`:"";
@@ -894,13 +924,28 @@ function txRow(t){
     <div class="inf"><div class="d1">${title}${it.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${date} · ${t.type==="exp"?it.cat:"Renda"}${it.cc?" · 💳":""}</div></div>
     <div class="val ${t.type==="exp"?"neg":"pos"}">${t.type==="exp"?"−":"+"}${fmt0(it.val)}</div></div>`;
 }
+function listShift(n){
+  if(!listMonth)listMonth=thisMonth();
+  const[y,m]=listMonth.split("-").map(Number);
+  const d=new Date(y,m-1+n,1);
+  const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+  if(k>thisMonth())return;
+  listMonth=k;render();
+}
 function renderList(){
+  if(!listMonth)listMonth=thisMonth();
   document.querySelectorAll(".tabs2 .pill").forEach(p=>p.classList.toggle("on",p.dataset.f===listFilter));
-  let a=allTx();
+  const[y,m]=listMonth.split("-").map(Number);
+  document.getElementById("lMonth").textContent=new Date(y,m-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+  document.getElementById("lNext").style.visibility=listMonth>=thisMonth()?"hidden":"visible";
+  let a=allTx().filter(t=>monthKey(t.item.d)===listMonth);
+  const inc=sum(a.filter(t=>t.type==="inc").map(t=>t.item));
+  const ex=sum(a.filter(t=>t.type==="exp").map(t=>t.item));
+  document.getElementById("lSum").innerHTML=(inc||ex)?`<span class="pos">+${fmt0(inc)}</span> · <span class="neg">−${fmt0(ex)}</span> · saldo <b class="${inc-ex>=0?"pos":"neg"}">${fmt0(inc-ex)}</b>`:"sem movimentos";
   if(listFilter==="exp")a=a.filter(t=>t.type==="exp");
   if(listFilter==="inc")a=a.filter(t=>t.type==="inc");
   if(listFilter==="imp")a=a.filter(t=>t.type==="exp"&&t.item.imp);
-  document.getElementById("lList").innerHTML=a.length?a.map(txRow).join(""):`<div class="empty">Nada por aqui ainda.</div>`;
+  document.getElementById("lList").innerHTML=a.length?a.map(txRow).join(""):`<div class="empty">Nada laçado neste mês, parceiro.</div>`;
 }
 function renderGoals(){
   document.getElementById("gTotal").textContent=fmt(savedTotal());
