@@ -102,6 +102,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .mission.done{color:var(--mut);text-decoration:line-through}
 .mission .xp{margin-left:auto;font-size:.7rem;color:var(--purple);font-weight:700;text-decoration:none}
 canvas{max-width:100%}
+.sect{margin:20px 0 2px;font-weight:800;font-size:.85rem;color:var(--acc);border-top:1px solid var(--line);padding-top:16px;letter-spacing:.02em}
 input[type=range]{padding:0;background:transparent;border:none;height:32px;accent-color:var(--acc)}
 .tabs2{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto}
 .pill{background:var(--card);border:1px solid var(--line);color:var(--mut);border-radius:20px;padding:7px 14px;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap}
@@ -155,6 +156,26 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     <button class="pill" data-f="imp" onclick="listFilter='imp';render()">Impulsos</button>
   </div>
   <div class="card"><div id="lList"></div></div>
+</div>
+
+<!-- ============ CONTAS ============ -->
+<div class="view" id="v-bills">
+  <div class="card" style="background:linear-gradient(135deg,#E2E8EE,#FFF9F0)">
+    <h3>💳 Cartão de crédito — fatura aberta</h3>
+    <div class="big" id="ccTotal">R$ 0,00</div>
+    <div class="small" id="ccInfo" style="margin-top:4px"></div>
+    <div class="row" style="margin-top:12px;gap:8px">
+      <span class="small" style="flex:1">Fecha dia</span><select id="ccClose" style="width:76px" onchange="saveCard()"></select>
+      <span class="small">Vence dia</span><select id="ccDue" style="width:76px" onchange="saveCard()"></select>
+    </div>
+  </div>
+  <div class="card"><h3>Lançamentos da fatura</h3><div id="ccList"></div></div>
+  <div class="card">
+    <h3>🔁 Contas recorrentes</h3>
+    <div class="small" id="bTotal" style="margin-bottom:6px"></div>
+    <div id="bList"></div>
+    <button class="btn sec" style="margin-top:12px" onclick="openBillModal()">＋ Nova conta recorrente</button>
+  </div>
 </div>
 
 <!-- ============ ANÁLISE ============ -->
@@ -212,17 +233,28 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
   </div>
   <div class="card">
     <h3>⚙️ Configurações</h3>
-    <label>Seu nome</label><input id="sName" placeholder="Como te chamamos?">
+    <div class="sect" style="border-top:none;padding-top:4px">👤 Sobre você</div>
+    <label>Seu nome</label><input id="sName" placeholder="Como te chamamos, parceiro?">
+    <div class="sect">💵 Sua renda</div>
     <label>Com que frequência você recebe?</label>
     <select id="sFreq" onchange="freqUi()"><option value="sem">Semanal</option><option value="mes">Mensal</option></select>
     <label id="sWeeklyLbl">Quanto você recebe por semana (R$)</label><input id="sWeekly" type="number" inputmode="decimal" oninput="envSum()">
     <label id="sPaydayLbl">Dia que você recebe</label>
     <select id="sPayday"><option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option></select>
     <select id="sPaydayM" style="display:none"></select>
-    <label>Envelopes — limite por categoria (escolha semanal ou mensal)</label>
+    <div class="sect">✉️ Envelopes de gasto</div>
+    <div class="small">Limite por categoria, cada um no seu período (semanal ou mensal). Deixe em branco para não usar.</div>
     <div id="sEnv"></div>
-    <div class="small" id="sEnvSum" style="margin-top:6px"></div>
-    <button class="btn" style="margin-top:14px" onclick="saveSettings()">Salvar</button>
+    <div class="small" id="sEnvSum" style="margin-top:8px"></div>
+    <div class="sect">🏷️ Suas categorias</div>
+    <div class="small">Crie categorias do seu jeito — elas ganham envelope próprio e aparecem na hora de laçar gastos.</div>
+    <div id="sCats"></div>
+    <div class="row" style="margin-top:10px;gap:8px">
+      <input id="cEmoji" placeholder="🏇" maxlength="4" style="width:64px;text-align:center;flex-shrink:0">
+      <input id="cName" placeholder="Nome (ex.: Pets, Rolês, Skin...)">
+      <button class="btn sm" style="flex-shrink:0" onclick="addCat()">＋ Criar</button>
+    </div>
+    <button class="btn" style="margin-top:20px" onclick="saveSettings()">Salvar configurações ✓</button>
   </div>
   <div class="card">
     <h3>📦 Dados</h3>
@@ -239,6 +271,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 <nav><div class="nrow">
   <button class="nbtn on" data-v="home" onclick="go('home')"><span class="i">🏠</span>Início</button>
   <button class="nbtn" data-v="list" onclick="go('list')"><span class="i">🧾</span>Extrato</button>
+  <button class="nbtn" data-v="bills" onclick="go('bills')"><span class="i">💳</span>Contas</button>
   <button class="fab" onclick="openTxModal()">＋</button>
   <button class="nbtn" data-v="anal" onclick="go('anal')"><span class="i">📊</span>Análise</button>
   <button class="nbtn" data-v="goals" onclick="go('goals')"><span class="i">🎯</span>Metas</button>
@@ -258,6 +291,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     <div id="txExpFields">
       <label>Categoria</label><div class="chips" id="txCats"></div>
       <div class="tog" id="txImp" onclick="this.classList.toggle('on')"><div><b>😈 Foi no gatilho rápido?</b><div class="small">Não estava planejado — a vontade atacou e você sacou a carteira</div></div><div class="sw"></div></div>
+      <div class="tog" id="txCC" onclick="this.classList.toggle('on')"><div><b>💳 No cartão de crédito?</b><div class="small">Entra na fatura aberta da aba Contas</div></div><div class="sw"></div></div>
     </div>
     <div id="txIncFields" style="display:none">
       <label>Fonte</label><div class="chips" id="txSrcs"></div>
@@ -290,6 +324,18 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
   <div class="sheet" id="g2Body"></div>
 </div>
 
+<!-- MODAL: conta recorrente -->
+<div class="modal" id="mBill" onclick="if(event.target===this)closeModal('mBill')">
+  <div class="sheet">
+    <h2>Nova conta recorrente 🔁</h2>
+    <label>Nome</label><input id="bName" placeholder="Ex.: Spotify, academia, internet">
+    <label>Valor (R$)</label><input id="bVal" type="number" inputmode="decimal">
+    <label>Vence todo dia</label><select id="bDay"></select>
+    <label>Categoria</label><select id="bCat"></select>
+    <button class="btn" style="margin-top:18px" onclick="saveBill()">Cadastrar conta ✓</button>
+  </div>
+</div>
+
 <div id="toasts"></div>
 
 <script>
@@ -300,8 +346,8 @@ const GOAL_EMOJIS=["🎮","📱","✈️","💻","👟","🎸","🚗","🎓","�
 const LEVELS=[[0,"Peão de Primeira Viagem","🌵"],[100,"Aprendiz de Vaqueiro","🐴"],[300,"Caubói do Troco","🤠"],[600,"Domador de Boletos","🐂"],[1000,"Xerife da Poupança","⭐"],[1600,"Caçador de Recompensas","🏜️"],[2500,"Barão do Gado","🐎"],[4000,"Lenda do Velho Oeste","🌟"]];
 const WD=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
-const DEF={v:1,updatedAt:0,expenses:[],incomes:[],goals:[],
-  settings:{name:"",weeklyIncome:100,payday:1,paydayM:5,freq:"sem",envelopes:{}},
+const DEF={v:1,updatedAt:0,expenses:[],incomes:[],goals:[],bills:[],
+  settings:{name:"",weeklyIncome:100,payday:1,paydayM:5,freq:"sem",envelopes:{},customCats:[],cardClose:28,cardDue:5},
   game:{xp:0,logDates:[],processedWeeks:[],ach:[]}};
 
 let S=load(), listFilter="all", txType="exp", txCat=CATS[0][0], txSrc=SRCS[0][0], editTx=null, gEmoji=GOAL_EMOJIS[0];
@@ -326,7 +372,25 @@ const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMo
 const pd=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d);};
 const ds=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-const catEmoji=c=>{const f=CATS.find(x=>x[0]===c);return f?f[1]:"📦";};
+const cats=()=>CATS.concat((S.settings.customCats||[]).map(c=>[c.n,c.e||"🏷️"]));
+const catEmoji=c=>{const f=cats().find(x=>x[0]===c);return f?f[1]:"📦";};
+function addCat(){
+  const n=document.getElementById("cName").value.trim();
+  const e=document.getElementById("cEmoji").value.trim()||"🏷️";
+  if(!n)return toast("⚠️ Dê um nome à categoria, parceiro");
+  if(cats().some(c=>c[0].toLowerCase()===n.toLowerCase()))return toast("⚠️ Essa categoria já existe");
+  S.settings.customCats=S.settings.customCats||[];
+  S.settings.customCats.push({n,e});
+  document.getElementById("cName").value="";document.getElementById("cEmoji").value="";
+  save();toast(`🏷️ Categoria ${e} ${n} criada!`);
+}
+function delCat(n){
+  if(!confirm(`Remover a categoria "${n}"? Gastos antigos continuam registrados nela.`))return;
+  S.settings.customCats=(S.settings.customCats||[]).filter(c=>c.n!==n);
+  delete S.settings.envelopes[n];
+  if(txCat===n)txCat=CATS[0][0];
+  save();
+}
 
 function weekStart(date){ // início da semana = dia de pagamento (semanal) ou segunda (mensal)
   const d=new Date(date); d.setHours(0,0,0,0);
@@ -443,6 +507,7 @@ function openTxModal(edit){
   document.getElementById("txDesc").value=edit?(edit.item.desc||edit.item.note||""):"";
   document.getElementById("txDate").value=edit?edit.item.d:todayStr();
   document.getElementById("txImp").classList.toggle("on",!!(edit&&edit.item.imp));
+  document.getElementById("txCC").classList.toggle("on",!!(edit&&edit.item.cc));
   setTxType(edit?edit.type:"exp");
   if(edit&&edit.type==="exp")txCat=edit.item.cat;
   if(edit&&edit.type==="inc")txSrc=edit.item.src;
@@ -465,7 +530,7 @@ function setTxType(t){
   }
 }
 function renderChips(){
-  document.getElementById("txCats").innerHTML=CATS.map(([c,e])=>`<button class="chip ${c===txCat?'on':''}" onclick="txCat='${c}';renderChips()">${e} ${c}</button>`).join("");
+  document.getElementById("txCats").innerHTML=cats().map(([c,e])=>`<button class="chip ${c===txCat?'on':''}" onclick="txCat='${c.replace(/'/g,"\\'")}';renderChips()">${e} ${c}</button>`).join("");
   document.getElementById("txSrcs").innerHTML=SRCS.map(([c,e])=>`<button class="chip ${c===txSrc?'on':''}" onclick="txSrc='${c.replace(/'/g,"\\'")}';renderChips()">${e} ${c}</button>`).join("");
 }
 function saveTx(){
@@ -476,13 +541,14 @@ function saveTx(){
   if(editTx){ // editar
     const it=editTx.item;
     it.val=val;it.d=d;
-    if(editTx.type==="exp"){it.cat=txCat;it.desc=desc;it.imp=document.getElementById("txImp").classList.contains("on");}
+    if(editTx.type==="exp"){it.cat=txCat;it.desc=desc;it.imp=document.getElementById("txImp").classList.contains("on");it.cc=document.getElementById("txCC").classList.contains("on");}
     else{it.src=txSrc;it.note=desc;}
     closeModal("mTx");save();return;
   }
   if(txType==="exp"){
     const imp=document.getElementById("txImp").classList.contains("on");
-    S.expenses.push({id:uid(),d,cat:txCat,desc,val,imp});
+    const cc=document.getElementById("txCC").classList.contains("on");
+    S.expenses.push({id:uid(),d,cat:txCat,desc,val,imp,cc});
     registerLogDay(d);addXP(10,imp?"laçado (até impulso anotado conta, parceiro 🤠)":"gasto laçado 🤠");
   }else if(txType==="inc"){
     S.incomes.push({id:uid(),d,src:txSrc,val,note:desc});
@@ -526,17 +592,15 @@ function delGoal(id){
 }
 let curGoal=null,gPer="sem";
 function gPerSel(p,btn){gPer=p;document.querySelectorAll("#gPerSeg button").forEach(b=>b.classList.remove("on"));btn.classList.add("on");}
-function goalPace(g){ // ritmo semanal efetivo: sobras das últimas semanas OU ritmo dos depósitos
-  const r=weeklySavingRate();
-  if(r&&r>0)return{v:r,src:"sobras"};
-  const dep=g.deposits||[];
-  if(dep.length){
-    const first=dep.reduce((a,b)=>a.d<b.d?a:b);
-    const weeks=Math.max(1,(new Date()-pd(first.d))/6048e5);
-    const v=sum(dep)/weeks;
-    if(v>0)return{v,src:"baú"};
-  }
-  return null;
+function goalPace(g){ // ritmo = depósitos no período do plano (semana ou mês)
+  const per=g.per||"sem";const dep=g.deposits||[];
+  if(!dep.length)return null;
+  const cur=per==="mes"?sum(dep.filter(d=>monthKey(d.d)===thisMonth())):sum(dep.filter(d=>inWeek(d.d,weekStart(new Date()))));
+  if(cur>0)return{v:cur,src:per==="mes"?"depositado este mês":"depositado esta semana"};
+  const first=dep.reduce((a,b)=>a.d<b.d?a:b);
+  const len=Math.max(1,(new Date()-pd(first.d))/((per==="mes"?30.44:7)*864e5));
+  const v=sum(dep)/len;
+  return v>0?{v,src:"média dos seus depósitos"}:null;
 }
 function g2DelDep(i){
   const g=S.goals.find(x=>x.id===curGoal);if(!g||!g.deposits||!g.deposits[i])return;
@@ -560,12 +624,12 @@ function renderGoalDetail(){
   const marks=[[0,"🏁"],[25,"🌵"],[50,"⛰️"],[75,"🐎"],[100,"🏆"]];
   const trail=marks.map(([p,e])=>`<div style="text-align:center;flex:1"><div style="font-size:1.3rem;${pct>=p?"":"opacity:.25;filter:grayscale(1)"}">${e}</div><div class="small" style="font-size:.6rem">${p}%</div></div>`).join("");
   const step=per==="mes"?10:5;
-  const max=Math.max(step*10,Math.ceil(((weeklyBudget()||100)*f)/step)*step,pace?Math.ceil(pace.v*f*2/step)*step:0);
-  const val=pace?Math.min(max,Math.max(step,Math.round(pace.v*f/step)*step)):(per==="mes"?100:25);
+  const max=Math.max(step*10,Math.ceil(((weeklyBudget()||100)*f)/step)*step,pace?Math.ceil(pace.v*2/step)*step:0);
+  const val=pace?Math.min(max,Math.max(step,Math.round(pace.v/step)*step)):(per==="mes"?100:25);
   let proj="—";
   if(!falta)proj="🏆";
-  else if(pace){const n=Math.ceil(falta/(pace.v*f));proj=n+(per==="mes"?(n>1?" meses":" mês"):" sem.");}
-  const projNote=(!falta||pace)?"":`<div class="small" style="margin:4px 0 0;text-align:center">🌵 Guarde o 1º ouro (ou feche semanas com sobra) que eu calculo sua chegada, parceiro.</div>`;
+  else if(pace){const n=Math.ceil(falta/pace.v);proj=n+(per==="mes"?(n>1?" meses":" mês"):" sem.");}
+  const projNote=(!falta||pace)?"":`<div class="small" style="margin:4px 0 0;text-align:center">🌵 Guarde o 1º ouro que eu calculo sua chegada pelo seu ritmo de depósitos, parceiro.</div>`;
   const last=(g.deposits||[]).map((d,i)=>({...d,i})).slice(-6).reverse();
   document.getElementById("g2Body").innerHTML=`
   <h2 style="display:flex;justify-content:space-between;align-items:center">${g.emoji} ${g.name}<span class="small">${Math.round(pct)}% da trilha</span></h2>
@@ -574,7 +638,7 @@ function renderGoalDetail(){
   <div class="grid3" style="margin:16px 0 4px">
     <div><div class="n pos">${fmt0(got)}</div><div class="l">No baú</div></div>
     <div><div class="n ${falta?"neg":"pos"}">${fmt0(falta)}</div><div class="l">Falta</div></div>
-    <div><div class="n">${proj}</div><div class="l">Previsão atual${pace?` (ritmo do ${pace.src==="baú"?"seu baú":"que sobra"})`:""}</div></div>
+    <div><div class="n">${proj}</div><div class="l">Previsão atual${pace?` (${pace.src})`:""}</div></div>
   </div>${projNote}
   <label>⛏️ Colocar ouro no baú agora</label>
   <div class="chips">${[10,25,50,100].map(v=>`<button class="chip" onclick="g2Deposit(${v})">+R$${v}</button>`).join("")}</div>
@@ -604,7 +668,7 @@ function g2Sim(){
   const n=Math.ceil(falta/v);const d=new Date();d.setDate(d.getDate()+Math.round(n*dias));
   let html=`Guardando <b>${fmt0(v)}</b> por ${lbl}, você crava a bandeira em <b>${n} ${unid(n)}</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})}).`;
   const pace=goalPace(g);
-  if(pace){const pp=pace.v*f;const cur=Math.ceil(falta/pp);
+  if(pace){const pp=pace.v;const cur=Math.ceil(falta/pp);
     if(n<cur)html+=` São <b>${cur-n} ${unid(cur-n)} a menos</b> que no seu ritmo atual! 🐎`;
     else if(n>cur)html+=` Seu ritmo atual (${fmt0(pp)}/${lbl}) já vence essa marca, parceiro. 🤠`;}
   const imp=avgWeeklyImpulse()*f;
@@ -630,6 +694,71 @@ function weeklySavingRate(){ // média das últimas 4 semanas fechadas (renda - 
   }
   if(!rates.length)return null;
   return rates.reduce((a,b)=>a+b,0)/rates.length;
+}
+
+/* ================= CONTAS & CARTÃO ================= */
+function cardCycleStart(){ // data do último fechamento (fatura aberta = compras depois dela)
+  const c=Number(S.settings.cardClose||28);
+  const now=new Date();now.setHours(0,0,0,0);
+  let y=now.getFullYear(),m=now.getMonth();
+  if(now.getDate()<=c)m--;
+  const dd=Math.min(c,new Date(y,m+1,0).getDate());
+  return new Date(y,m,dd);
+}
+function saveCard(){
+  S.settings.cardClose=Number(document.getElementById("ccClose").value);
+  S.settings.cardDue=Number(document.getElementById("ccDue").value);
+  save();toast("💳 Cartão configurado");
+}
+function renderBills(){
+  const close=Number(S.settings.cardClose||28),due=Number(S.settings.cardDue||5);
+  const selC=document.getElementById("ccClose"),selD=document.getElementById("ccDue");
+  if(!selC.options.length){const op=[...Array(28)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join("");selC.innerHTML=op;selD.innerHTML=op;}
+  if(document.activeElement!==selC&&document.activeElement!==selD){selC.value=close;selD.value=due;}
+  const start=cardCycleStart();
+  const cc=S.expenses.filter(e=>e.cc&&pd(e.d)>start).sort((a,b)=>b.d.localeCompare(a.d));
+  document.getElementById("ccTotal").textContent=fmt(sum(cc));
+  const nx=new Date(start);nx.setMonth(nx.getMonth()+1);
+  document.getElementById("ccInfo").innerHTML=`${cc.length} lançamento${cc.length!==1?"s":""} desde ${start.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · fecha ${nx.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · vence dia ${due}`;
+  document.getElementById("ccList").innerHTML=cc.slice(0,8).map(e=>`<div class="tx" onclick='openTxModal(${JSON.stringify({type:"exp",item:e}).replace(/'/g,"&#39;")})'><div class="ico">${catEmoji(e.cat)}</div><div class="inf"><div class="d1">${e.desc||e.cat}${e.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · ${e.cat}</div></div><div class="val neg">−${fmt0(e.val)}</div></div>`).join("")||`<div class="empty">Nenhum gasto no cartão nesta fatura. Ao laçar um gasto, ative a chavinha 💳, parceiro.</div>`;
+  const m=thisMonth(),today=new Date().getDate();
+  const bills=S.bills||[];
+  document.getElementById("bTotal").innerHTML=bills.length?`Total fixo: <b>${fmt0(bills.reduce((a,b)=>a+Number(b.val),0))}/mês</b>`:"";
+  document.getElementById("bList").innerHTML=bills.map(b=>{
+    const paid=(b.paid||[]).includes(m);
+    const st=paid?`<span style="color:var(--acc);font-weight:700">✅ Paga este mês</span>`:today>b.day?`<span class="neg" style="font-weight:700">🚨 Atrasada (venceu dia ${b.day})</span>`:`<span class="mut">⏳ Vence dia ${b.day}${b.day-today<=3?" — "+(b.day===today?"HOJE!":"em "+(b.day-today)+"d"):""}</span>`;
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><div class="row"><span style="font-weight:600">${catEmoji(b.cat)} ${b.name}</span><span style="font-weight:700">${fmt0(b.val)}</span></div><div class="row" style="margin-top:6px"><span style="font-size:.75rem">${st}</span><span style="display:flex;gap:6px">${paid?"":`<button class="btn sm" onclick="payBill('${b.id}')">Paguei ✓</button>`}<button class="btn danger sm" style="padding:6px 10px" onclick="delBill('${b.id}')">✕</button></span></div></div>`;
+  }).join("")||`<div class="empty">Cadastre assinaturas e mensalidades (Spotify, academia, internet...) e eu te aviso quando vencem, parceiro.</div>`;
+}
+function openBillModal(){
+  const sel=document.getElementById("bDay");
+  if(!sel.options.length)sel.innerHTML=[...Array(28)].map((_,i)=>`<option value="${i+1}">Dia ${i+1}</option>`).join("");
+  document.getElementById("bCat").innerHTML=cats().map(([c,e])=>`<option value="${c}">${e} ${c}</option>`).join("");
+  document.getElementById("bName").value="";document.getElementById("bVal").value="";
+  document.getElementById("mBill").classList.add("on");
+}
+function saveBill(){
+  const name=document.getElementById("bName").value.trim();
+  const val=parseFloat(document.getElementById("bVal").value);
+  if(!name||!val||val<=0)return toast("⚠️ Preencha nome e valor");
+  S.bills=S.bills||[];
+  S.bills.push({id:uid(),name,val,day:Number(document.getElementById("bDay").value),cat:document.getElementById("bCat").value,paid:[]});
+  closeModal("mBill");save();toast("🔁 Conta cadastrada, parceiro");
+}
+function payBill(id){
+  const b=(S.bills||[]).find(x=>x.id===id);if(!b)return;
+  const m=thisMonth();
+  b.paid=b.paid||[];
+  if(b.paid.includes(m))return;
+  b.paid.push(m);
+  S.expenses.push({id:uid(),d:todayStr(),cat:b.cat,desc:b.name+" (conta fixa)",val:Number(b.val),imp:false});
+  registerLogDay(todayStr());
+  addXP(10,"conta domada 🐂");
+  save();
+}
+function delBill(id){
+  const b=(S.bills||[]).find(x=>x.id===id);
+  if(b&&confirm(`Excluir a conta "${b.name}"? Pagamentos já lançados continuam no extrato.`)){S.bills=S.bills.filter(x=>x.id!==id);save();}
 }
 
 /* ================= INSIGHTS ================= */
@@ -677,6 +806,14 @@ function getInsights(){
       out.push(["🔮",`No ritmo atual (sobra de ${fmt0(rate)}/semana), você conquista ${g.emoji} <b>${g.name}</b> em <b>${wks} semana${wks>1?"s":""}</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}).`]);}
     else out.push(["🔮",`No ritmo atual você não está sobrando nada para ${g.emoji} ${g.name}. Que tal apertar as rédeas de um envelope, parceiro?`]);
   }
+  // contas a vencer
+  (S.bills||[]).forEach(b=>{
+    if((b.paid||[]).includes(thisMonth()))return;
+    const dd=b.day-new Date().getDate();
+    if(dd===0)out.push(["🔔",`A conta <b>${b.name}</b> (${fmt0(b.val)}) vence <b>hoje</b>!`]);
+    else if(dd>0&&dd<=3)out.push(["🔔",`A conta <b>${b.name}</b> (${fmt0(b.val)}) vence em <b>${dd} dia${dd>1?"s":""}</b>.`]);
+    else if(dd<0)out.push(["🚨",`Conta <b>${b.name}</b> atrasada desde o dia ${b.day}, parceiro!`]);
+  });
   // próximo pagamento
   const np=nextPayday();
   const dd=Math.round((np-new Date(new Date().setHours(0,0,0,0)))/864e5);
@@ -700,7 +837,7 @@ function render(){
   document.getElementById("lvlName").textContent=`${L.emoji} ${L.name} · ${S.game.xp} XP`;
   document.getElementById("xpFill").style.width=L.pct+"%";
   document.getElementById("streakBox").textContent="🔥 "+streak();
-  renderHome();renderList();renderGoals();renderMe();
+  renderHome();renderList();renderBills();renderGoals();renderMe();
   if(document.getElementById("v-anal").classList.contains("on"))renderCharts();
 }
 function renderHome(){
@@ -754,7 +891,7 @@ function txRow(t){
   const date=pd(it.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"});
   return `<div class="tx" onclick='openTxModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>
     <div class="ico">${emoji}</div>
-    <div class="inf"><div class="d1">${title}${it.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${date} · ${t.type==="exp"?it.cat:"Renda"}</div></div>
+    <div class="inf"><div class="d1">${title}${it.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${date} · ${t.type==="exp"?it.cat:"Renda"}${it.cc?" · 💳":""}</div></div>
     <div class="val ${t.type==="exp"?"neg":"pos"}">${t.type==="exp"?"−":"+"}${fmt0(it.val)}</div></div>`;
 }
 function renderList(){
@@ -774,7 +911,7 @@ function renderGoals(){
     const got=sum(g.deposits||[]);const p=g.target?Math.min(100,100*got/g.target):0;
     let proj="";
     const pace=goalPace(g);
-    if(got<g.target&&pace){const per=g.per||"sem";const f=per==="mes"?52/12:1;const n=Math.ceil((g.target-got)/(pace.v*f));const d=new Date();d.setDate(d.getDate()+Math.round(n*(per==="mes"?30.44:7)));
+    if(got<g.target&&pace){const per=g.per||"sem";const n=Math.ceil((g.target-got)/pace.v);const d=new Date();d.setDate(d.getDate()+Math.round(n*(per==="mes"?30.44:7)));
       proj=`🔮 No ritmo atual: <b>${n} ${per==="mes"?(n>1?"meses":"mês"):"sem."}</b> (~${d.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})})`;}
     else if(got>=g.target)proj=`🏆 <b>OURO ENCONTRADO!</b>`;
     return `<div class="card goal" style="cursor:pointer" onclick="openGoalDetail('${g.id}')"><div class="row" style="margin-bottom:8px">
@@ -802,8 +939,9 @@ function renderMe(){
     const pm=document.getElementById("sPaydayM");
     if(!pm.options.length)pm.innerHTML=[...Array(31)].map((_,i)=>`<option value="${i+1}">Dia ${i+1}</option>`).join("");
     pm.value=S.settings.paydayM||5;
+    document.getElementById("sCats").innerHTML=(S.settings.customCats||[]).length?(S.settings.customCats||[]).map(c=>`<div class="row" style="margin-top:8px"><span style="font-size:.85rem">${c.e} ${c.n}</span><button class="btn danger sm" style="padding:3px 10px" onclick="delCat('${c.n.replace(/'/g,"\\'")}')">✕</button></div>`).join(""):`<div class="small" style="margin-top:6px">Nenhuma categoria própria ainda.</div>`;
     freqUi(false);
-    document.getElementById("sEnv").innerHTML=CATS.map(([c,e])=>{const en=envOf(S.settings.envelopes[c]);return `<div class="row" style="margin-top:8px"><span style="font-size:.85rem;flex:1">${e} ${c}</span><input data-env="${c}" type="number" inputmode="decimal" value="${en.v||""}" placeholder="—" style="width:84px" oninput="envSum()"><select data-envp="${c}" style="width:92px" onchange="envSum()"><option value="sem"${en.p!=="mes"?" selected":""}>/semana</option><option value="mes"${en.p==="mes"?" selected":""}>/mês</option></select></div>`;}).join("");
+    document.getElementById("sEnv").innerHTML=cats().map(([c,e])=>{const en=envOf(S.settings.envelopes[c]);return `<div class="row" style="margin-top:8px"><span style="font-size:.85rem;flex:1">${e} ${c}</span><input data-env="${c}" type="number" inputmode="decimal" value="${en.v||""}" placeholder="—" style="width:84px" oninput="envSum()"><select data-envp="${c}" style="width:92px" onchange="envSum()"><option value="sem"${en.p!=="mes"?" selected":""}>/semana</option><option value="mes"${en.p==="mes"?" selected":""}>/mês</option></select></div>`;}).join("");
     envSum();
   }
 }
@@ -911,7 +1049,7 @@ function importXlsx(inp){
       if(gastos){
         XLSX.utils.sheet_to_json(gastos,{header:1}).forEach(row=>{
           const d=parseDate(row[0]);const val=parseFloat(row[3]);
-          if(d&&val>0){S.expenses.push({id:uid(),d,cat:CATS.some(c=>c[0]===row[1])?row[1]:"Outros",desc:String(row[2]||""),val,imp:String(row[4]||"").toLowerCase().startsWith("s")});nE++;}
+          if(d&&val>0){S.expenses.push({id:uid(),d,cat:cats().some(c=>c[0]===row[1])?row[1]:"Outros",desc:String(row[2]||""),val,imp:String(row[4]||"").toLowerCase().startsWith("s")});nE++;}
         });
       }
       const renda=wb.Sheets["Renda"];
