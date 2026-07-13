@@ -155,7 +155,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
   <div class="card" style="padding:10px 14px;margin-bottom:12px">
     <div class="row">
       <button class="btn sec sm" onclick="listShift(-1)">◀</button>
-      <div style="text-align:center;flex:1"><b id="lMonth" style="text-transform:capitalize"></b><div class="small" id="lSum" style="margin-top:2px"></div></div>
+      <div style="text-align:center;flex:1"><b id="lMonth" style="text-transform:capitalize;cursor:pointer;border-bottom:1px dashed var(--mut)" onclick="openMonthPicker('list')"></b><div class="small" id="lSum" style="margin-top:2px"></div></div>
       <button class="btn sec sm" id="lNext" onclick="listShift(1)">▶</button>
     </div>
   </div>
@@ -194,7 +194,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
   <div class="card" style="padding:10px 14px;margin-bottom:12px">
     <div class="row">
       <button class="btn sec sm" onclick="anaShift(-1)">◀</button>
-      <b id="aMonth" style="text-transform:capitalize"></b>
+      <b id="aMonth" style="text-transform:capitalize;cursor:pointer;border-bottom:1px dashed var(--mut)" onclick="openMonthPicker('ana')"></b>
       <button class="btn sec sm" id="aNext" onclick="anaShift(1)">▶</button>
     </div>
   </div>
@@ -351,6 +351,21 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     <label>Vence todo dia</label><select id="bDay"></select>
     <label>Categoria</label><select id="bCat"></select>
     <button class="btn" style="margin-top:18px" onclick="saveBill()">Cadastrar conta ✓</button>
+  </div>
+</div>
+
+<!-- MODAL: seletor de mês/ano -->
+<div class="modal" id="mMonth" onclick="if(event.target===this)closeModal('mMonth')">
+  <div class="sheet">
+    <button class="xclose" onclick="closeModal('mMonth')">✕</button>
+    <h2>Escolher mês 📅</h2>
+    <div class="row" style="margin-bottom:14px">
+      <button class="btn sec sm" onclick="mpYear(-1)">◀</button>
+      <b id="mpY" style="font-size:1.15rem"></b>
+      <button class="btn sec sm" id="mpNext" onclick="mpYear(1)">▶</button>
+    </div>
+    <div id="mpGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
+    <div class="small" style="margin-top:12px;text-align:center">• = mês com movimentos</div>
   </div>
 </div>
 
@@ -942,6 +957,36 @@ function txRow(t){
     <div class="ico">${emoji}</div>
     <div class="inf"><div class="d1">${title}${it.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${date} · ${t.type==="exp"?it.cat:"Renda"}${it.cc?" · 💳":""}</div></div>
     <div class="val ${t.type==="exp"?"neg":"pos"}">${t.type==="exp"?"−":"+"}${fmt0(it.val)}</div></div>`;
+}
+let mpTarget="list",mpYearVal=0;
+const MP_MESES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+function openMonthPicker(target){
+  mpTarget=target;
+  const cur=(target==="ana"?(anaMonth||thisMonth()):(listMonth||thisMonth()));
+  mpYearVal=Number(cur.slice(0,4));
+  renderMp();showModal("mMonth");
+}
+function mpYear(n){
+  const y=mpYearVal+n;
+  if(y>Number(thisMonth().slice(0,4)))return;
+  mpYearVal=y;renderMp();
+}
+function renderMp(){
+  document.getElementById("mpY").textContent=mpYearVal;
+  document.getElementById("mpNext").style.visibility=mpYearVal>=Number(thisMonth().slice(0,4))?"hidden":"visible";
+  const sel=(mpTarget==="ana"?(anaMonth||thisMonth()):(listMonth||thisMonth()));
+  document.getElementById("mpGrid").innerHTML=MP_MESES.map((n,i)=>{
+    const k=mpYearVal+"-"+String(i+1).padStart(2,"0");
+    const dis=k>thisMonth();
+    const has=S.expenses.some(e=>monthKey(e.d)===k)||S.incomes.some(e=>monthKey(e.d)===k);
+    return `<button class="chip ${k===sel?"on":""}" style="padding:12px 0;text-align:center;justify-content:center;${dis?"opacity:.3;pointer-events:none":""}" onclick="mpPick('${k}')">${n}${has?" •":""}</button>`;
+  }).join("");
+}
+function mpPick(k){
+  if(k>thisMonth())return;
+  closeModal("mMonth");
+  if(mpTarget==="ana"){anaMonth=k;renderCharts();}
+  else{listMonth=k;render();}
 }
 function listShift(n){
   if(!listMonth)listMonth=thisMonth();
