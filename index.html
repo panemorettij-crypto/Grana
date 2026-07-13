@@ -71,6 +71,8 @@ nav{position:fixed;bottom:0;left:0;right:0;background:rgba(250,238,229,.96);back
 .sheet{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:20px;animation:up .25s}
 @keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
 .sheet h2{font-size:1.1rem;margin-bottom:16px}
+.xclose{float:right;background:var(--card2);border:1px solid var(--line);color:var(--mut);width:34px;height:34px;border-radius:50%;font-size:.95rem;cursor:pointer;margin:-2px 0 0 8px}
+button,select,.tog,.chip,.nbtn{touch-action:manipulation;-webkit-user-select:none;user-select:none}
 label{display:block;font-size:.75rem;color:var(--mut);margin:12px 0 5px;font-weight:600}
 input,select,textarea{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:12px;font-size:1rem;font-family:inherit}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
@@ -85,7 +87,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .tog .sw::after{content:'';position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:3px;left:3px;transition:.2s}
 .tog.on .sw{background:var(--red)}
 .tog.on .sw::after{left:21px}
-.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--acc);color:var(--txt);padding:10px 18px;border-radius:14px;font-size:.85rem;font-weight:600;z-index:200;box-shadow:0 6px 24px rgba(24,51,75,.2);animation:fade .3s;max-width:90vw;text-align:center}
+.toast{background:var(--card2);border:1px solid var(--acc);color:var(--txt);padding:10px 18px;border-radius:14px;font-size:.85rem;font-weight:600;box-shadow:0 6px 24px rgba(24,51,75,.2);animation:fade .3s;max-width:94vw;text-align:center}
+#toasts{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;width:max-content;max-width:94vw;pointer-events:none}
 .ach{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .abox{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 6px;text-align:center}
 .abox .e{font-size:1.6rem}
@@ -188,7 +191,14 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 
 <!-- ============ ANÁLISE ============ -->
 <div class="view" id="v-anal">
-  <div class="card"><h3>Gastos por categoria (mês)</h3><canvas id="cCat" height="220"></canvas></div>
+  <div class="card" style="padding:10px 14px;margin-bottom:12px">
+    <div class="row">
+      <button class="btn sec sm" onclick="anaShift(-1)">◀</button>
+      <b id="aMonth" style="text-transform:capitalize"></b>
+      <button class="btn sec sm" id="aNext" onclick="anaShift(1)">▶</button>
+    </div>
+  </div>
+  <div class="card"><h3>Gastos por categoria</h3><canvas id="cCat" height="220"></canvas></div>
   <div class="card"><h3>Semana a semana</h3><canvas id="cWeek" height="200"></canvas></div>
   <div class="card" style="border-color:rgba(222,142,112,.4)">
     <h3 style="color:var(--red)">🤠 Duelo contra os impulsos</h3>
@@ -199,7 +209,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     </div>
     <div id="aImpMsg" class="small"></div>
   </div>
-  <div class="card"><h3>💡 Diagnóstico do mês</h3><div id="aInsights"></div></div>
+  <div class="card"><h3>💡 Diagnóstico do mês atual</h3><div id="aInsights"></div></div>
 </div>
 
 <!-- ============ METAS ============ -->
@@ -242,14 +252,14 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
   <div class="card">
     <h3>⚙️ Configurações</h3>
     <div class="sect" style="border-top:none;padding-top:4px">👤 Sobre você</div>
-    <label>Seu nome</label><input id="sName" placeholder="Como te chamamos, parceiro?">
+    <label>Seu nome</label><input id="sName" placeholder="Como te chamamos, parceiro?" oninput="settingsChanged()">
     <div class="sect">💵 Sua renda</div>
     <label>Com que frequência você recebe?</label>
-    <select id="sFreq" onchange="freqUi()"><option value="sem">Semanal</option><option value="mes">Mensal</option></select>
-    <label id="sWeeklyLbl">Quanto você recebe por semana (R$)</label><input id="sWeekly" type="number" inputmode="decimal" oninput="envSum()">
+    <select id="sFreq" onchange="freqUi();settingsChanged()"><option value="sem">Semanal</option><option value="mes">Mensal</option></select>
+    <label id="sWeeklyLbl">Quanto você recebe por semana (R$)</label><input id="sWeekly" type="number" inputmode="decimal" oninput="envSum();settingsChanged()">
     <label id="sPaydayLbl">Dia que você recebe</label>
-    <select id="sPayday"><option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option></select>
-    <select id="sPaydayM" style="display:none"></select>
+    <select id="sPayday" onchange="settingsChanged()"><option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option></select>
+    <select id="sPaydayM" style="display:none" onchange="settingsChanged()"></select>
     <div class="sect">✉️ Envelopes de gasto</div>
     <div class="small">Limite por categoria, cada um no seu período (semanal ou mensal). Deixe em branco para não usar.</div>
     <div id="sEnv"></div>
@@ -262,7 +272,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
       <input id="cName" placeholder="Nome (ex.: Pets, Rolês, Skin...)">
       <button class="btn sm" style="flex-shrink:0" onclick="addCat()">＋ Criar</button>
     </div>
-    <button class="btn" style="margin-top:20px" onclick="saveSettings()">Salvar configurações ✓</button>
+    <div class="small" style="margin-top:16px;text-align:center">💾 Tudo aqui é salvo automaticamente enquanto você edita.</div>
   </div>
   <div class="card">
     <h3>📦 Dados</h3>
@@ -289,13 +299,13 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 <!-- MODAL: transação -->
 <div class="modal" id="mTx" onclick="if(event.target===this)closeModal('mTx')">
   <div class="sheet">
-    <h2 id="mTxTitle">Novo lançamento</h2>
+    <button class="xclose" onclick="closeModal('mTx')">✕</button><h2 id="mTxTitle">Novo lançamento</h2>
     <div class="seg" id="txSeg">
       <button class="on" onclick="setTxType('exp')">💸 Gasto</button>
       <button onclick="setTxType('inc')">💰 Renda</button>
       <button onclick="setTxType('sav')">🐷 Guardar</button>
     </div>
-    <label>Valor (R$)</label><input id="txVal" type="number" inputmode="decimal" placeholder="0,00" step="0.01">
+    <label>Valor (R$)</label><input id="txVal" type="number" inputmode="decimal" placeholder="0,00" step="0.01" onkeydown="if(event.key==='Enter')saveTx()">
     <div id="txExpFields">
       <label>Categoria</label><div class="chips" id="txCats"></div>
       <div class="tog" id="txImp" onclick="this.classList.toggle('on')"><div><b>😈 Foi no gatilho rápido?</b><div class="small">Não estava planejado — a vontade atacou e você sacou a carteira</div></div><div class="sw"></div></div>
@@ -307,7 +317,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     <div id="txSavFields" style="display:none">
       <label>Guardar para qual meta?</label><select id="txGoal"></select>
     </div>
-    <label>Descrição (opcional)</label><input id="txDesc" placeholder="Ex.: lanche depois da aula">
+    <label>Descrição (opcional)</label><input id="txDesc" placeholder="Ex.: lanche depois da aula" onkeydown="if(event.key==='Enter')saveTx()">
     <label>Data</label><input id="txDate" type="date">
     <button class="btn" style="margin-top:18px" onclick="saveTx()">Salvar ✓</button>
     <button class="btn danger" id="txDel" style="margin-top:8px;display:none" onclick="deleteTx()">Excluir</button>
@@ -317,7 +327,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 <!-- MODAL: meta -->
 <div class="modal" id="mGoal" onclick="if(event.target===this)closeModal('mGoal')">
   <div class="sheet">
-    <h2>Novo mapa do tesouro 🗺️</h2>
+    <button class="xclose" onclick="closeModal('mGoal')">✕</button><h2>Novo mapa do tesouro 🗺️</h2>
     <label>O que você quer conquistar?</label><input id="gName" placeholder="Ex.: PlayStation 5, viagem, celular novo">
     <label>Emoji</label><div class="chips" id="gEmojis"></div>
     <label>Valor necessário (R$)</label><input id="gTarget" type="number" inputmode="decimal">
@@ -335,7 +345,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 <!-- MODAL: conta recorrente -->
 <div class="modal" id="mBill" onclick="if(event.target===this)closeModal('mBill')">
   <div class="sheet">
-    <h2>Nova conta recorrente 🔁</h2>
+    <button class="xclose" onclick="closeModal('mBill')">✕</button><h2>Nova conta recorrente 🔁</h2>
     <label>Nome</label><input id="bName" placeholder="Ex.: Spotify, academia, internet">
     <label>Valor (R$)</label><input id="bVal" type="number" inputmode="decimal">
     <label>Vence todo dia</label><select id="bDay"></select>
@@ -358,7 +368,7 @@ const DEF={v:1,updatedAt:0,expenses:[],incomes:[],goals:[],bills:[],
   settings:{name:"",weeklyIncome:100,payday:1,paydayM:5,freq:"sem",envelopes:{},customCats:[],cardClose:28,cardDue:5},
   game:{xp:0,logDates:[],processedWeeks:[],ach:[]}};
 
-let S=load(), listFilter="all", listMonth="", txType="exp", txCat=CATS[0][0], txSrc=SRCS[0][0], editTx=null, gEmoji=GOAL_EMOJIS[0];
+let S=load(), listFilter="all", listMonth="", anaMonth="", txType="exp", txCat=CATS[0][0], txSrc=SRCS[0][0], editTx=null, gEmoji=GOAL_EMOJIS[0];
 let charts={};
 
 function load(){
@@ -420,7 +430,7 @@ const thisMonth=()=>todayStr().slice(0,7);
 
 function toast(msg){
   const t=document.createElement("div");t.className="toast";t.innerHTML=msg;
-  document.body.appendChild(t);
+  document.getElementById("toasts").appendChild(t);
   setTimeout(()=>{t.style.opacity="0";t.style.transition="opacity .4s";},2200);
   setTimeout(()=>t.remove(),2700);
 }
@@ -520,10 +530,18 @@ function openTxModal(edit){
   if(edit&&edit.type==="exp")txCat=edit.item.cat;
   if(edit&&edit.type==="inc")txSrc=edit.item.src;
   renderChips();
-  document.getElementById("mTx").classList.add("on");
+  showModal("mTx");
   if(!edit)setTimeout(()=>document.getElementById("txVal").focus(),250);
 }
-function closeModal(id){document.getElementById(id).classList.remove("on");}
+function showModal(id){
+  document.getElementById(id).classList.add("on");
+  try{history.pushState({modal:id},"");}catch(e){}
+}
+function closeModal(id){
+  document.getElementById(id).classList.remove("on");
+  try{if(history.state&&history.state.modal===id)history.back();}catch(e){}
+}
+window.addEventListener("popstate",()=>{document.querySelectorAll(".modal.on").forEach(m=>m.classList.remove("on"));});
 function setTxType(t){
   txType=t;
   const b=document.querySelectorAll("#txSeg button");
@@ -584,7 +602,7 @@ function openGoalModal(){
   document.querySelectorAll("#gPerSeg button").forEach((b,i)=>b.classList.toggle("on",i===0));
   document.getElementById("gEmojis").innerHTML=GOAL_EMOJIS.map(e=>`<button class="chip ${e===gEmoji?'on':''}" onclick="gEmoji='${e}';openGoalEmojiSel(this)">${e}</button>`).join("");
   document.getElementById("gName").value="";document.getElementById("gTarget").value="";
-  document.getElementById("mGoal").classList.add("on");
+  showModal("mGoal");
 }
 function openGoalEmojiSel(btn){document.querySelectorAll("#gEmojis .chip").forEach(c=>c.classList.remove("on"));btn.classList.add("on");}
 function saveGoal(){
@@ -623,7 +641,7 @@ function avgWeeklyImpulse(){ // média semanal gasta em impulsos (últimas 4 sem
   if(!vals.length)return sum(weekExpenses(cur).filter(e=>e.imp));
   return vals.reduce((a,b)=>a+b,0)/vals.length;
 }
-function openGoalDetail(id){curGoal=id;renderGoalDetail();document.getElementById("mGoal2").classList.add("on");}
+function openGoalDetail(id){curGoal=id;renderGoalDetail();showModal("mGoal2");}
 function renderGoalDetail(){
   const g=S.goals.find(x=>x.id===curGoal);if(!g)return;
   const per=g.per||"sem",lbl=per==="mes"?"mês":"semana",f=per==="mes"?52/12:1;
@@ -640,6 +658,7 @@ function renderGoalDetail(){
   const projNote=(!falta||pace)?"":`<div class="small" style="margin:4px 0 0;text-align:center">🌵 Guarde o 1º ouro que eu calculo sua chegada pelo seu ritmo de depósitos, parceiro.</div>`;
   const last=(g.deposits||[]).map((d,i)=>({...d,i})).slice(-6).reverse();
   document.getElementById("g2Body").innerHTML=`
+  <button class="xclose" onclick="closeModal('mGoal2')">✕</button>
   <h2 style="display:flex;justify-content:space-between;align-items:center">${g.emoji} ${g.name}<span class="small">${Math.round(pct)}% da trilha</span></h2>
   <div class="bar" style="height:12px"><div class="fill" style="width:${pct}%;background:linear-gradient(90deg,var(--purple),var(--blue))"></div></div>
   <div style="display:flex;margin:10px 0 0">${trail}</div>
@@ -765,7 +784,7 @@ function openBillModal(){
   if(!sel.options.length)sel.innerHTML=[...Array(28)].map((_,i)=>`<option value="${i+1}">Dia ${i+1}</option>`).join("");
   document.getElementById("bCat").innerHTML=cats().map(([c,e])=>`<option value="${c}">${e} ${c}</option>`).join("");
   document.getElementById("bName").value="";document.getElementById("bVal").value="";
-  document.getElementById("mBill").classList.add("on");
+  showModal("mBill");
 }
 function saveBill(){
   const name=document.getElementById("bName").value.trim();
@@ -976,7 +995,7 @@ function renderMe(){
   document.getElementById("pAchT").textContent=ACH.length;
   document.getElementById("pAch").innerHTML=ACH.map(([id,e,t,d])=>`<div class="abox ${S.game.ach.includes(id)?"":"lock"}"><div class="e">${e}</div><div class="t">${t}</div><div class="s">${d}</div></div>`).join("");
   // settings
-  if(document.activeElement.tagName!=="INPUT"){
+  if(!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)){
     document.getElementById("sName").value=S.settings.name||"";
     document.getElementById("sFreq").value=S.settings.freq||"sem";
     document.getElementById("sWeekly").value=S.settings.weeklyIncome||"";
@@ -986,7 +1005,7 @@ function renderMe(){
     pm.value=S.settings.paydayM||5;
     document.getElementById("sCats").innerHTML=(S.settings.customCats||[]).length?(S.settings.customCats||[]).map(c=>`<div class="row" style="margin-top:8px"><span style="font-size:.85rem">${c.e} ${c.n}</span><button class="btn danger sm" style="padding:3px 10px" onclick="delCat('${c.n.replace(/'/g,"\\'")}')">✕</button></div>`).join(""):`<div class="small" style="margin-top:6px">Nenhuma categoria própria ainda.</div>`;
     freqUi(false);
-    document.getElementById("sEnv").innerHTML=cats().map(([c,e])=>{const en=envOf(S.settings.envelopes[c]);return `<div class="row" style="margin-top:8px"><span style="font-size:.85rem;flex:1">${e} ${c}</span><input data-env="${c}" type="number" inputmode="decimal" value="${en.v||""}" placeholder="—" style="width:84px" oninput="envSum()"><select data-envp="${c}" style="width:92px" onchange="envSum()"><option value="sem"${en.p!=="mes"?" selected":""}>/semana</option><option value="mes"${en.p==="mes"?" selected":""}>/mês</option></select></div>`;}).join("");
+    document.getElementById("sEnv").innerHTML=cats().map(([c,e])=>{const en=envOf(S.settings.envelopes[c]);return `<div class="row" style="margin-top:8px"><span style="font-size:.85rem;flex:1">${e} ${c}</span><input data-env="${c}" type="number" inputmode="decimal" value="${en.v||""}" placeholder="—" style="width:84px" oninput="envSum();settingsChanged()"><select data-envp="${c}" style="width:92px" onchange="envSum();settingsChanged()"><option value="sem"${en.p!=="mes"?" selected":""}>/semana</option><option value="mes"${en.p==="mes"?" selected":""}>/mês</option></select></div>`;}).join("");
     envSum();
   }
 }
@@ -1019,7 +1038,9 @@ function envSum(){
   const w=mes?raw*12/52:raw;
   document.getElementById("sEnvSum").innerHTML=t?`Total dos envelopes ≈ <b>${fmt0(t)}</b> de <b>${fmt0(w)}</b> por semana${mes?` (sua renda mensal de ${fmt0(raw)} ≈ ${fmt0(w)}/semana)`:""} → sobra <b class="${w-t>=0?"pos":"neg"}">${fmt0(w-t)}</b> para guardar 🐷`:"";
 }
-function saveSettings(){
+let setTimer=null;
+function settingsChanged(){clearTimeout(setTimer);setTimer=setTimeout(()=>saveSettings(true),900);}
+function saveSettings(auto){
   S.settings.name=document.getElementById("sName").value.trim();
   S.settings.freq=document.getElementById("sFreq").value;
   S.settings.weeklyIncome=Number(document.getElementById("sWeekly").value||0);
@@ -1027,12 +1048,25 @@ function saveSettings(){
   S.settings.paydayM=Number(document.getElementById("sPaydayM").value||5);
   const env={};document.querySelectorAll("[data-env]").forEach(i=>{const v=Number(i.value);if(v>0){const sel=document.querySelector('[data-envp="'+i.dataset.env+'"]');env[i.dataset.env]={v,p:sel?sel.value:"sem"};}});
   S.settings.envelopes=env;
-  save();toast("✓ Configurações salvas");
+  save();
+  if(!auto)toast("✓ Configurações salvas");
 }
 
 /* ================= GRÁFICOS ================= */
+function anaShift(n){
+  if(!anaMonth)anaMonth=thisMonth();
+  const[y,mm]=anaMonth.split("-").map(Number);
+  const d=new Date(y,mm-1+n,1);
+  const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+  if(k>thisMonth())return;
+  anaMonth=k;renderCharts();
+}
 function renderCharts(){
-  const m=thisMonth();
+  if(!anaMonth)anaMonth=thisMonth();
+  const m=anaMonth;
+  const[ay,am]=m.split("-").map(Number);
+  document.getElementById("aMonth").textContent=new Date(ay,am-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+  document.getElementById("aNext").style.visibility=m>=thisMonth()?"hidden":"visible";
   const mex=S.expenses.filter(e=>monthKey(e.d)===m);
   const by={};mex.forEach(e=>by[e.cat]=(by[e.cat]||0)+e.val);
   const cats=Object.keys(by);
