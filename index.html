@@ -178,6 +178,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
       <span class="small" style="flex:1">Fecha dia</span><select id="ccClose" style="width:76px" onchange="saveCard()"></select>
       <span class="small">Vence dia</span><select id="ccDue" style="width:76px" onchange="saveCard()"></select>
     </div>
+    <div id="ccPay"></div>
   </div>
   <div class="card"><h3>Lançamentos da fatura</h3><div id="ccList"></div></div>
   <div class="card">
@@ -345,7 +346,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 <!-- MODAL: conta recorrente -->
 <div class="modal" id="mBill" onclick="if(event.target===this)closeModal('mBill')">
   <div class="sheet">
-    <button class="xclose" onclick="closeModal('mBill')">✕</button><h2>Nova conta recorrente 🔁</h2>
+    <button class="xclose" onclick="closeModal('mBill')">✕</button><h2 id="mBillTitle">Nova conta recorrente 🔁</h2>
     <label>Nome</label><input id="bName" placeholder="Ex.: Spotify, academia, internet">
     <label>Valor (R$)</label><input id="bVal" type="number" inputmode="decimal">
     <label>Vence todo dia</label><select id="bDay"></select>
@@ -353,7 +354,8 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     <label>Forma de pagamento</label>
     <div class="seg" id="bPaySeg"><button onclick="bPaySel('deb',this)" class="on">💵 Débito/Pix</button><button onclick="bPaySel('cred',this)">💳 Crédito</button></div>
     <div class="small" id="bPayHint" style="margin-top:8px">Você recebe aviso de vencimento e marca "Paguei ✓" quando pagar.</div>
-    <button class="btn" style="margin-top:18px" onclick="saveBill()">Cadastrar conta ✓</button>
+    <button class="btn" style="margin-top:18px" id="bSaveBtn" onclick="saveBill()">Cadastrar conta ✓</button>
+    <button class="btn danger" id="bDelBtn" style="margin-top:8px;display:none" onclick="delBill(editBillId)">🗑️ Excluir esta conta</button>
   </div>
 </div>
 
@@ -381,6 +383,23 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
   </div>
 </div>
 
+<!-- MODAL: pagar fatura -->
+<div class="modal" id="mPayInv" onclick="if(event.target===this)closeModal('mPayInv')">
+  <div class="sheet">
+    <button class="xclose" onclick="closeModal('mPayInv')">✕</button>
+    <h2>💳 Pagar fatura</h2>
+    <div class="small" id="piInfo"></div>
+    <div id="piList" style="margin:10px 0 4px"></div>
+    <label>Faltou algo? Inclua na fatura</label>
+    <div class="row" style="gap:8px">
+      <input id="piDesc" placeholder="Descrição">
+      <input id="piVal" type="number" inputmode="decimal" placeholder="R$" style="width:92px;flex-shrink:0">
+      <button class="btn sec sm" style="flex-shrink:0" onclick="piAdd()">＋</button>
+    </div>
+    <button class="btn" style="margin-top:18px" id="piPayBtn" onclick="piPay()"></button>
+  </div>
+</div>
+
 <div id="toasts"></div>
 
 <script>
@@ -391,7 +410,7 @@ const GOAL_EMOJIS=["🎮","📱","✈️","💻","👟","🎸","🚗","🎓","�
 const LEVELS=[[0,"Peão de Primeira Viagem","🌵"],[100,"Aprendiz de Vaqueiro","🐴"],[300,"Caubói do Troco","🤠"],[600,"Domador de Boletos","🐂"],[1000,"Xerife da Poupança","⭐"],[1600,"Caçador de Recompensas","🏜️"],[2500,"Barão do Gado","🐎"],[4000,"Lenda do Velho Oeste","🌟"]];
 const WD=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
-const DEF={v:1,updatedAt:0,expenses:[],incomes:[],goals:[],bills:[],
+const DEF={v:1,updatedAt:0,expenses:[],incomes:[],goals:[],bills:[],invPaid:[],
   settings:{name:"",weeklyIncome:100,payday:1,paydayM:5,freq:"sem",envelopes:{},customCats:[],cardClose:28,cardDue:5},
   game:{xp:0,logDates:[],processedWeeks:[],ach:[]}};
 
@@ -743,7 +762,7 @@ function weeklySavingRate(){ // média das últimas 4 semanas fechadas (renda - 
   const cur=weekStart(new Date());const rates=[];
   for(let i=1;i<=4;i++){
     const ws=new Date(cur);ws.setDate(ws.getDate()-7*i);
-    const inc=sum(weekIncomes(ws)),ex=sum(weekExpenses(ws));
+    const inc=sum(weekIncomes(ws)),ex=sum(weekExpenses(ws).filter(e=>!e.cc))+sum((S.invPaid||[]).filter(p=>inWeek(p.d,ws)));
     if(inc>0||ex>0)rates.push(inc-ex);
   }
   if(!rates.length)return null;
@@ -759,7 +778,7 @@ function cardCycleStart(){ // data do último fechamento (fatura aberta = compra
   const dd=Math.min(c,new Date(y,m+1,0).getDate());
   return new Date(y,m,dd);
 }
-let billEdit=false;
+let billEdit=false,editBillId=null;
 function toggleBillEdit(){billEdit=!billEdit;renderBills();}
 function openInvoices(){showModal("mInv");}
 function cycleBoundary(k){ // k=0 → início da fatura aberta; k>0 → k ciclos antes
@@ -768,6 +787,43 @@ function cycleBoundary(k){ // k=0 → início da fatura aberta; k>0 → k ciclos
   const d=new Date(s.getFullYear(),s.getMonth()-k,1);
   const dd=Math.min(c,new Date(d.getFullYear(),d.getMonth()+1,0).getDate());
   return new Date(d.getFullYear(),d.getMonth(),dd);
+}
+function closedInvoices(){ // faturas já fechadas (mais recente primeiro)
+  const out=[];
+  for(let i=1;i<=6;i++){
+    const a=cycleBoundary(i),b=cycleBoundary(i-1),k=ds(b);
+    const items=S.expenses.filter(e=>e.cc&&pd(e.d)>a&&pd(e.d)<=b);
+    if(items.length)out.push({k,total:sum(items),paid:(S.invPaid||[]).some(p=>p.k===k)});
+  }
+  return out;
+}
+function invBoundsByKey(k){for(let i=1;i<=6;i++){const a=cycleBoundary(i),b=cycleBoundary(i-1);if(ds(b)===k)return{a,b};}return null;}
+function invItemsByKey(k){const bd=invBoundsByKey(k);if(!bd)return[];return S.expenses.filter(e=>e.cc&&pd(e.d)>bd.a&&pd(e.d)<=bd.b).sort((x,y)=>y.d.localeCompare(x.d));}
+let piKey=null;
+function openPayInv(k){piKey=k;renderPayInv();showModal("mPayInv");}
+function renderPayInv(){
+  const items=invItemsByKey(piKey);const tot=sum(items);
+  document.getElementById("piInfo").innerHTML=`Fechada em <b>${pd(piKey).toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})}</b> · vence dia ${S.settings.cardDue||5} · toque no nome para editar o item`;
+  document.getElementById("piList").innerHTML=items.map(e=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);font-size:.85rem"><span style="cursor:pointer" onclick='closeModal("mPayInv");openTxModal(${JSON.stringify({type:"exp",item:e}).replace(/'/g,"&#39;")})'>${catEmoji(e.cat)} ${e.desc||e.cat} <span class="mut">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}</span></span><span style="display:flex;gap:8px;align-items:center"><span class="neg">−${fmt0(e.val)}</span><button class="btn danger sm" style="padding:2px 9px" onclick="piDel('${e.id}')">✕</button></span></div>`).join("")||`<div class="empty">Fatura vazia.</div>`;
+  document.getElementById("piPayBtn").textContent=`Confirmar pagamento · ${fmt0(tot)} ✓`;
+}
+function piDel(id){S.expenses=S.expenses.filter(x=>x.id!==id);save();renderPayInv();}
+function piAdd(){
+  const desc=document.getElementById("piDesc").value.trim();
+  const val=parseFloat(document.getElementById("piVal").value);
+  if(!val||val<=0)return toast("⚠️ Valor inválido");
+  S.expenses.push({id:uid(),d:piKey,cat:"Outros",desc:desc||"Item da fatura",val,imp:false,cc:true});
+  document.getElementById("piDesc").value="";document.getElementById("piVal").value="";
+  save();renderPayInv();
+}
+function piPay(){
+  const tot=sum(invItemsByKey(piKey));
+  if(tot<=0)return toast("⚠️ Fatura vazia");
+  S.invPaid=S.invPaid||[];
+  if(S.invPaid.some(p=>p.k===piKey))return toast("Essa fatura já foi paga, parceiro");
+  S.invPaid.push({id:uid(),k:piKey,val:tot,d:todayStr()});
+  addXP(15,"fatura domada 💳");
+  closeModal("mPayInv");save();toast(`💳 Fatura de ${fmt0(tot)} paga!`);
 }
 function saveCard(){
   S.settings.cardClose=Number(document.getElementById("ccClose").value);
@@ -793,16 +849,19 @@ function renderBills(){
     if(!items.length)continue;
     nPrev++;
     const pid="ccp"+i;
+    const k=ds(b),paidK=(S.invPaid||[]).some(p=>p.k===k);
     prev+=`<div style="border-bottom:1px solid var(--line)">
       <div class="row" style="padding:10px 0;cursor:pointer" onclick="const e=document.getElementById('${pid}');e.style.display=e.style.display==='none'?'block':'none'">
         <span style="font-weight:600">🧾 Fechada em ${b.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})}</span>
-        <span style="font-weight:700">${fmt0(sum(items))} <span class="mut" style="font-weight:400;font-size:.75rem">${items.length} itens ▾</span></span></div>
+        <span style="font-weight:700;display:flex;gap:8px;align-items:center">${fmt0(sum(items))} ${paidK?`<span class="pos" style="font-size:.7rem">✓ paga</span>`:`<button class="btn sm" style="padding:4px 12px" onclick="event.stopPropagation();closeModal('mInv');openPayInv('${k}')">Pagar</button>`} <span class="mut" style="font-weight:400;font-size:.75rem">▾</span></span></div>
       <div id="${pid}" style="display:none;padding-bottom:10px">${items.map(e=>`<div class="row" style="padding:4px 0;font-size:.83rem"><span class="mut">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · ${catEmoji(e.cat)} ${e.desc||e.cat}</span><span class="neg">−${fmt0(e.val)}</span></div>`).join("")}</div>
     </div>`;
   }
   document.getElementById("invList").innerHTML=prev||`<div class="empty">Nenhuma fatura fechada ainda — elas aparecem aqui com o passar dos meses, parceiro.</div>`;
   document.getElementById("ccPrevSum").textContent=nPrev?`${nPrev} fatura${nPrev>1?"s":""} fechada${nPrev>1?"s":""} ›`:"nenhuma ainda ›";
   document.getElementById("bEditBtn").textContent=billEdit?"✓ Concluir":"✏️ Editar";
+  const unpaidInv=closedInvoices().filter(v=>!v.paid);
+  document.getElementById("ccPay").innerHTML=unpaidInv.length?`<button class="btn" style="margin-top:12px" onclick="openPayInv('${unpaidInv[0].k}')">💸 Pagar fatura fechada · ${fmt0(unpaidInv[0].total)}</button>`:"";
   const m=thisMonth(),today=new Date().getDate();
   const bills=S.bills||[];
   document.getElementById("bTotal").innerHTML=bills.length?`Total fixo: <b>${fmt0(bills.reduce((a,b)=>a+Number(b.val),0))}/mês</b>`:"";
@@ -811,7 +870,7 @@ function renderBills(){
     const cred=b.pay==="cred";
     const st=cred?(paid?`<span style="color:var(--acc);font-weight:700">💳 Na fatura deste mês ✓</span>`:`<span class="mut">💳 Entra na fatura dia ${b.day}</span>`)
       :(paid?`<span style="color:var(--acc);font-weight:700">✅ Paga este mês</span>`:today>b.day?`<span class="neg" style="font-weight:700">🚨 Atrasada (venceu dia ${b.day})</span>`:`<span class="mut">⏳ Vence dia ${b.day}${b.day-today<=3?" — "+(b.day===today?"HOJE!":"em "+(b.day-today)+"d"):""}</span>`);
-    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><div class="row"><span style="font-weight:600">${catEmoji(b.cat)} ${b.name} <span class="mut" style="font-size:.65rem">${cred?"crédito":"débito"}</span></span><span style="font-weight:700">${fmt0(b.val)}</span></div><div class="row" style="margin-top:6px"><span style="font-size:.75rem">${st}</span><span style="display:flex;gap:6px">${paid||cred?"":`<button class="btn sm" onclick="payBill('${b.id}')">Paguei ✓</button>`}${billEdit?`<button class="btn danger sm" style="padding:6px 10px" onclick="delBill('${b.id}')">✕</button>`:""}</span></div></div>`;
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><div class="row"><span style="font-weight:600">${catEmoji(b.cat)} ${b.name} <span class="mut" style="font-size:.65rem">${cred?"crédito":"débito"}</span></span><span style="font-weight:700">${fmt0(b.val)}</span></div><div class="row" style="margin-top:6px"><span style="font-size:.75rem">${st}</span><span style="display:flex;gap:6px">${paid||cred?"":`<button class="btn sm" onclick="payBill('${b.id}')">Paguei ✓</button>`}${billEdit?`<button class="btn sec sm" style="padding:6px 12px" onclick="openBillModal('${b.id}')">✏️</button>`:""}</span></div></div>`;
   }).join("")||`<div class="empty">Cadastre assinaturas e mensalidades (Spotify, academia, internet...) e eu te aviso quando vencem, parceiro.</div>`;
 }
 let bPay="deb";
@@ -835,14 +894,22 @@ function autoPostCreditBills(){ // recorrências no crédito caem sozinhas na fa
   if(changed){localStorage.setItem("grana_data",JSON.stringify(S));toast("💳 Recorrência lançada na fatura");}
   return changed;
 }
-function openBillModal(){
-  bPay="deb";
-  document.querySelectorAll("#bPaySeg button").forEach((x,i)=>x.classList.toggle("on",i===0));
-  document.getElementById("bPayHint").textContent="Você recebe aviso de vencimento e marca \"Paguei ✓\" quando pagar.";
+function openBillModal(id){
+  editBillId=id||null;
+  const b=id?(S.bills||[]).find(x=>x.id===id):null;
+  bPay=b?(b.pay||"deb"):"deb";
+  document.querySelectorAll("#bPaySeg button").forEach((x,i)=>x.classList.toggle("on",bPay==="deb"?i===0:i===1));
+  document.getElementById("bPayHint").textContent=bPay==="cred"?"Entra sozinha na fatura do cartão no dia da cobrança — sem aviso de atraso.":"Você recebe aviso de vencimento e marca \"Paguei ✓\" quando pagar.";
   const sel=document.getElementById("bDay");
   if(!sel.options.length)sel.innerHTML=[...Array(28)].map((_,i)=>`<option value="${i+1}">Dia ${i+1}</option>`).join("");
   document.getElementById("bCat").innerHTML=cats().map(([c,e])=>`<option value="${c}">${e} ${c}</option>`).join("");
-  document.getElementById("bName").value="";document.getElementById("bVal").value="";
+  document.getElementById("bName").value=b?b.name:"";
+  document.getElementById("bVal").value=b?b.val:"";
+  document.getElementById("bDay").value=b?b.day:1;
+  if(b)document.getElementById("bCat").value=b.cat;
+  document.getElementById("mBillTitle").textContent=b?"Editar conta 🔁":"Nova conta recorrente 🔁";
+  document.getElementById("bSaveBtn").textContent=b?"Salvar alterações ✓":"Cadastrar conta ✓";
+  document.getElementById("bDelBtn").style.display=b?"block":"none";
   showModal("mBill");
 }
 function saveBill(){
@@ -850,6 +917,11 @@ function saveBill(){
   const val=parseFloat(document.getElementById("bVal").value);
   if(!name||!val||val<=0)return toast("⚠️ Preencha nome e valor");
   S.bills=S.bills||[];
+  if(editBillId){
+    const b=S.bills.find(x=>x.id===editBillId);
+    if(b){b.name=name;b.val=val;b.day=Number(document.getElementById("bDay").value);b.cat=document.getElementById("bCat").value;b.pay=bPay;}
+    closeModal("mBill");autoPostCreditBills();save();toast("✓ Conta atualizada");return;
+  }
   S.bills.push({id:uid(),name,val,day:Number(document.getElementById("bDay").value),cat:document.getElementById("bCat").value,pay:bPay,paid:[]});
   closeModal("mBill");autoPostCreditBills();save();toast("🔁 Conta cadastrada, parceiro");
 }
@@ -866,7 +938,7 @@ function payBill(id){
 }
 function delBill(id){
   const b=(S.bills||[]).find(x=>x.id===id);
-  if(b&&confirm(`Excluir a conta "${b.name}"? Pagamentos já lançados continuam no extrato.`)){S.bills=S.bills.filter(x=>x.id!==id);save();}
+  if(b&&confirm(`Excluir a conta "${b.name}"? Pagamentos já lançados continuam no extrato.`)){closeModal("mBill");S.bills=S.bills.filter(x=>x.id!==id);save();}
 }
 
 /* ================= INSIGHTS ================= */
@@ -928,6 +1000,8 @@ function getInsights(){
   const dd=Math.round((np-new Date(new Date().setHours(0,0,0,0)))/864e5);
   if(dd>0)out.push(["💵",`Próximo pagamento em <b>${dd} dia${dd>1?"s":""}</b> (${np.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}).`]);
   else if(dd===0)out.push(["💵",`<b>Hoje é dia de pagamento!</b> 🎉 Não esqueça de registrar a entrada.`]);
+  const openInvs=closedInvoices().filter(v=>!v.paid);
+  if(openInvs.length)out.unshift(["💳",`Fatura do cartão <b>fechada</b> em ${pd(openInvs[0].k).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}: <b>${fmt0(openInvs[0].total)}</b> — pague na aba Contas (vence dia ${S.settings.cardDue||5}).`]);
   if(!out.length)out.push(["🤠",`Lace seus gastos e rendas e eu te trago as notícias do rancho, parceiro!`]);
   return out;
 }
@@ -952,7 +1026,8 @@ function render(){
 function renderHome(){
   const ws=weekStart(new Date());
   const wex=weekExpenses(ws),winc=weekIncomes(ws);
-  const totalInc=sum(S.incomes),totalEx=sum(S.expenses),saved=savedTotal();
+  const totalInc=sum(S.incomes),saved=savedTotal();
+  const totalEx=sum(S.expenses.filter(e=>!e.cc))+sum(S.invPaid||[]); // crédito só pesa quando a fatura é paga
   const bal=totalInc-totalEx-saved;
   const el=document.getElementById("hBalance");
   el.textContent=fmt(bal);el.className="big "+(bal>=0?"pos":"neg");
@@ -960,7 +1035,7 @@ function renderHome(){
   const we=new Date(ws);we.setDate(we.getDate()+6);
   document.getElementById("hWeekTitle").textContent=`Semana ${ws.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} – ${we.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}`;
   const wIn=sum(winc)||weeklyBudget();
-  const wOut=sum(wex),wLeft=wIn-wOut;
+  const wOut=sum(wex.filter(e=>!e.cc))+sum((S.invPaid||[]).filter(p=>inWeek(p.d,ws)));const wLeft=wIn-wOut;
   document.getElementById("hWIn").textContent=fmt0(sum(winc));
   document.getElementById("hWOut").textContent=fmt0(wOut);
   const l=document.getElementById("hWLeft");l.textContent=fmt0(wLeft);l.className="n "+(wLeft>=0?"pos":"neg");
