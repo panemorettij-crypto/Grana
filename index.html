@@ -243,7 +243,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     </div>
     <div id="cloudLogin" style="display:none">
       <button class="btn" onclick="cloudSignIn()">Entrar com Google</button>
-      <button class="btn sec sm" style="margin-top:8px" onclick="resetFbCfg()">Trocar configuração</button>
+      <button class="btn sec sm" id="fbSwapBtn" style="margin-top:8px" onclick="resetFbCfg()">Trocar configuração</button>
     </div>
     <div id="cloudOn" style="display:none">
       <div class="small" id="cloudUser" style="margin-bottom:10px"></div>
@@ -1331,7 +1331,11 @@ function importJson(inp){
 
 /* ================= NUVEM (Firebase) ================= */
 let fb={app:null,user:null,unsub:null,applying:false,timer:null};
-function getFbCfg(){try{return JSON.parse(localStorage.getItem("grana_fb"));}catch(e){return null;}}
+const FB_DEFAULT={apiKey:"AIzaSyBeDL1JH2P3wCNkszQN467QHlAxHY3fFJ4",authDomain:"grana-ed476.firebaseapp.com",projectId:"grana-ed476",storageBucket:"grana-ed476.firebasestorage.app",messagingSenderId:"913355466405",appId:"1:913355466405:web:e3c9a469bf8b26a80dcf4c"}; // projeto Grana do bolso
+function getFbCfg(){
+  try{const s=JSON.parse(localStorage.getItem("grana_fb"));if(s)return s;}catch(e){}
+  return FB_DEFAULT;
+}
 function saveFbCfg(){
   let t=document.getElementById("fbCfg").value.trim();
   const m=t.match(/\{[\s\S]*\}/);if(m)t=m[0];
@@ -1397,6 +1401,8 @@ function renderCloud(){
   const cfg=getFbCfg();
   document.getElementById("cloudSetup").style.display=cfg?"none":"block";
   document.getElementById("cloudLogin").style.display=cfg&&!fb.user?"block":"none";
+  const swap=document.getElementById("fbSwapBtn");
+  if(swap)swap.style.display=(FB_DEFAULT&&!localStorage.getItem("grana_fb"))?"none":"block";
   document.getElementById("cloudOn").style.display=fb.user?"block":"none";
   const dot=document.getElementById("cloudDot"),st=document.getElementById("cloudStatus");
   if(fb.user){dot.classList.add("ok");st.textContent="Sincronizando em tempo real";
