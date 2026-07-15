@@ -350,6 +350,9 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     <label>Valor (R$)</label><input id="bVal" type="number" inputmode="decimal">
     <label>Vence todo dia</label><select id="bDay"></select>
     <label>Categoria</label><select id="bCat"></select>
+    <label>Forma de pagamento</label>
+    <div class="seg" id="bPaySeg"><button onclick="bPaySel('deb',this)" class="on">💵 Débito/Pix</button><button onclick="bPaySel('cred',this)">💳 Crédito</button></div>
+    <div class="small" id="bPayHint" style="margin-top:8px">Você recebe aviso de vencimento e marca "Paguei ✓" quando pagar.</div>
     <button class="btn" style="margin-top:18px" onclick="saveBill()">Cadastrar conta ✓</button>
   </div>
 </div>
@@ -790,11 +793,37 @@ function renderBills(){
   document.getElementById("bTotal").innerHTML=bills.length?`Total fixo: <b>${fmt0(bills.reduce((a,b)=>a+Number(b.val),0))}/mês</b>`:"";
   document.getElementById("bList").innerHTML=bills.map(b=>{
     const paid=(b.paid||[]).includes(m);
-    const st=paid?`<span style="color:var(--acc);font-weight:700">✅ Paga este mês</span>`:today>b.day?`<span class="neg" style="font-weight:700">🚨 Atrasada (venceu dia ${b.day})</span>`:`<span class="mut">⏳ Vence dia ${b.day}${b.day-today<=3?" — "+(b.day===today?"HOJE!":"em "+(b.day-today)+"d"):""}</span>`;
-    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><div class="row"><span style="font-weight:600">${catEmoji(b.cat)} ${b.name}</span><span style="font-weight:700">${fmt0(b.val)}</span></div><div class="row" style="margin-top:6px"><span style="font-size:.75rem">${st}</span><span style="display:flex;gap:6px">${paid?"":`<button class="btn sm" onclick="payBill('${b.id}')">Paguei ✓</button>`}<button class="btn danger sm" style="padding:6px 10px" onclick="delBill('${b.id}')">✕</button></span></div></div>`;
+    const cred=b.pay==="cred";
+    const st=cred?(paid?`<span style="color:var(--acc);font-weight:700">💳 Na fatura deste mês ✓</span>`:`<span class="mut">💳 Entra na fatura dia ${b.day}</span>`)
+      :(paid?`<span style="color:var(--acc);font-weight:700">✅ Paga este mês</span>`:today>b.day?`<span class="neg" style="font-weight:700">🚨 Atrasada (venceu dia ${b.day})</span>`:`<span class="mut">⏳ Vence dia ${b.day}${b.day-today<=3?" — "+(b.day===today?"HOJE!":"em "+(b.day-today)+"d"):""}</span>`);
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><div class="row"><span style="font-weight:600">${catEmoji(b.cat)} ${b.name} <span class="mut" style="font-size:.65rem">${cred?"crédito":"débito"}</span></span><span style="font-weight:700">${fmt0(b.val)}</span></div><div class="row" style="margin-top:6px"><span style="font-size:.75rem">${st}</span><span style="display:flex;gap:6px">${paid||cred?"":`<button class="btn sm" onclick="payBill('${b.id}')">Paguei ✓</button>`}<button class="btn danger sm" style="padding:6px 10px" onclick="delBill('${b.id}')">✕</button></span></div></div>`;
   }).join("")||`<div class="empty">Cadastre assinaturas e mensalidades (Spotify, academia, internet...) e eu te aviso quando vencem, parceiro.</div>`;
 }
+let bPay="deb";
+function bPaySel(p,btn){
+  bPay=p;
+  document.querySelectorAll("#bPaySeg button").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  document.getElementById("bPayHint").textContent=p==="cred"?"Entra sozinha na fatura do cartão no dia da cobrança — sem aviso de atraso.":"Você recebe aviso de vencimento e marca \"Paguei ✓\" quando pagar.";
+}
+function autoPostCreditBills(){ // recorrências no crédito caem sozinhas na fatura
+  const m=thisMonth(),now=new Date(),today=now.getDate();
+  let changed=false;
+  (S.bills||[]).forEach(b=>{
+    if(b.pay!=="cred")return;
+    b.paid=b.paid||[];
+    if(b.paid.includes(m)||today<b.day)return;
+    b.paid.push(m);
+    S.expenses.push({id:uid(),d:ds(new Date(now.getFullYear(),now.getMonth(),Math.min(b.day,28))),cat:b.cat,desc:b.name+" (recorrente 💳)",val:Number(b.val),imp:false,cc:true});
+    changed=true;
+  });
+  if(changed){localStorage.setItem("grana_data",JSON.stringify(S));toast("💳 Recorrência lançada na fatura");}
+  return changed;
+}
 function openBillModal(){
+  bPay="deb";
+  document.querySelectorAll("#bPaySeg button").forEach((x,i)=>x.classList.toggle("on",i===0));
+  document.getElementById("bPayHint").textContent="Você recebe aviso de vencimento e marca \"Paguei ✓\" quando pagar.";
   const sel=document.getElementById("bDay");
   if(!sel.options.length)sel.innerHTML=[...Array(28)].map((_,i)=>`<option value="${i+1}">Dia ${i+1}</option>`).join("");
   document.getElementById("bCat").innerHTML=cats().map(([c,e])=>`<option value="${c}">${e} ${c}</option>`).join("");
@@ -806,8 +835,8 @@ function saveBill(){
   const val=parseFloat(document.getElementById("bVal").value);
   if(!name||!val||val<=0)return toast("⚠️ Preencha nome e valor");
   S.bills=S.bills||[];
-  S.bills.push({id:uid(),name,val,day:Number(document.getElementById("bDay").value),cat:document.getElementById("bCat").value,paid:[]});
-  closeModal("mBill");save();toast("🔁 Conta cadastrada, parceiro");
+  S.bills.push({id:uid(),name,val,day:Number(document.getElementById("bDay").value),cat:document.getElementById("bCat").value,pay:bPay,paid:[]});
+  closeModal("mBill");autoPostCreditBills();save();toast("🔁 Conta cadastrada, parceiro");
 }
 function payBill(id){
   const b=(S.bills||[]).find(x=>x.id===id);if(!b)return;
@@ -872,6 +901,7 @@ function getInsights(){
   }
   // contas a vencer
   (S.bills||[]).forEach(b=>{
+    if(b.pay==="cred")return;
     if((b.paid||[]).includes(thisMonth()))return;
     const dd=b.day-new Date().getDate();
     if(dd===0)out.push(["🔔",`A conta <b>${b.name}</b> (${fmt0(b.val)}) vence <b>hoje</b>!`]);
@@ -1281,6 +1311,7 @@ function renderCloud(){
 /* ================= INIT ================= */
 document.querySelector("nav .nrow").insertAdjacentHTML("beforeend",`<button class="nbtn" data-v="me" onclick="go('me')"><span class="i">👤</span>Perfil</button>`);
 processPastWeeks();
+autoPostCreditBills();
 render();
 initCloud();
 checkAchievements();
