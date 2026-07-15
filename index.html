@@ -290,7 +290,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 <nav><div class="nrow">
   <button class="nbtn on" data-v="home" onclick="go('home')"><span class="i">🏠</span>Início</button>
   <button class="nbtn" data-v="list" onclick="go('list')"><span class="i">🧾</span>Extrato</button>
-  <button class="nbtn" data-v="bills" onclick="go('bills')"><span class="i">💳</span>Contas</button>
+  <button class="nbtn" data-v="bills" onclick="go('bills')"><span class="i">💳</span>Cartão</button>
   <button class="fab" onclick="openTxModal()">＋</button>
   <button class="nbtn" data-v="anal" onclick="go('anal')"><span class="i">📊</span>Análise</button>
   <button class="nbtn" data-v="goals" onclick="go('goals')"><span class="i">🎯</span>Metas</button>
@@ -310,7 +310,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     <div id="txExpFields">
       <label>Categoria</label><div class="chips" id="txCats"></div>
       <div class="tog" id="txImp" onclick="this.classList.toggle('on')"><div><b>😈 Foi no gatilho rápido?</b><div class="small">Não estava planejado — a vontade atacou e você sacou a carteira</div></div><div class="sw"></div></div>
-      <div class="tog" id="txCC" onclick="this.classList.toggle('on')"><div><b>💳 No cartão de crédito?</b><div class="small">Entra na fatura aberta da aba Contas</div></div><div class="sw"></div></div>
+      <div class="tog" id="txCC" onclick="this.classList.toggle('on')"><div><b>💳 No cartão de crédito?</b><div class="small">Entra na fatura aberta da aba Cartão</div></div><div class="sw"></div></div>
     </div>
     <div id="txIncFields" style="display:none">
       <label>Fonte</label><div class="chips" id="txSrcs"></div>
@@ -1001,7 +1001,7 @@ function getInsights(){
   if(dd>0)out.push(["💵",`Próximo pagamento em <b>${dd} dia${dd>1?"s":""}</b> (${np.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}).`]);
   else if(dd===0)out.push(["💵",`<b>Hoje é dia de pagamento!</b> 🎉 Não esqueça de registrar a entrada.`]);
   const openInvs=closedInvoices().filter(v=>!v.paid);
-  if(openInvs.length)out.unshift(["💳",`Fatura do cartão <b>fechada</b> em ${pd(openInvs[0].k).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}: <b>${fmt0(openInvs[0].total)}</b> — pague na aba Contas (vence dia ${S.settings.cardDue||5}).`]);
+  if(openInvs.length)out.unshift(["💳",`Fatura do cartão <b>fechada</b> em ${pd(openInvs[0].k).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}: <b>${fmt0(openInvs[0].total)}</b> — pague na aba Cartão (vence dia ${S.settings.cardDue||5}).`]);
   if(!out.length)out.push(["🤠",`Lace seus gastos e rendas e eu te trago as notícias do rancho, parceiro!`]);
   return out;
 }
@@ -1064,12 +1064,18 @@ function renderHome(){
   const all=allTx().slice(0,5);
   document.getElementById("hRecent").innerHTML=all.length?all.map(txRow).join(""):`<div class="empty">Toque no botão <b style="color:var(--acc)">＋</b> para laçar seu primeiro gasto, parceiro!</div>`;
 }
-function allTx(){
-  const a=[...S.expenses.map(e=>({type:"exp",item:e})),...S.incomes.map(i=>({type:"inc",item:i}))];
+function allTx(){ // visão do dinheiro: débito + rendas + faturas pagas (itens do cartão vivem na aba Cartão)
+  const a=[...S.expenses.filter(e=>!e.cc).map(e=>({type:"exp",item:e})),
+           ...S.incomes.map(i=>({type:"inc",item:i})),
+           ...(S.invPaid||[]).map(p=>({type:"inv",item:p}))];
   return a.sort((x,y)=>y.item.d.localeCompare(x.item.d)||(y.item.id>x.item.id?1:-1));
 }
 function txRow(t){
   const it=t.item;
+  if(t.type==="inv"){
+    const date=pd(it.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"});
+    return `<div class="tx" onclick="go('bills')"><div class="ico">💳</div><div class="inf"><div class="d1">Fatura do cartão paga</div><div class="d2">${date} · fechada em ${pd(it.k).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}</div></div><div class="val neg">−${fmt0(it.val)}</div></div>`;
+  }
   const emoji=t.type==="exp"?catEmoji(it.cat):(SRCS.find(s=>s[0]===it.src)||["","💵"])[1];
   const title=t.type==="exp"?(it.desc||it.cat):(it.src||"Renda");
   const date=pd(it.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"});
@@ -1124,9 +1130,9 @@ function renderList(){
   document.getElementById("lNext").style.visibility=listMonth>=thisMonth()?"hidden":"visible";
   let a=allTx().filter(t=>monthKey(t.item.d)===listMonth);
   const inc=sum(a.filter(t=>t.type==="inc").map(t=>t.item));
-  const ex=sum(a.filter(t=>t.type==="exp").map(t=>t.item));
+  const ex=sum(a.filter(t=>t.type==="exp"||t.type==="inv").map(t=>t.item));
   document.getElementById("lSum").innerHTML=(inc||ex)?`<span class="pos">+${fmt0(inc)}</span> · <span class="neg">−${fmt0(ex)}</span> · saldo <b class="${inc-ex>=0?"pos":"neg"}">${fmt0(inc-ex)}</b>`:"sem movimentos";
-  if(listFilter==="exp")a=a.filter(t=>t.type==="exp");
+  if(listFilter==="exp")a=a.filter(t=>t.type==="exp"||t.type==="inv");
   if(listFilter==="inc")a=a.filter(t=>t.type==="inc");
   if(listFilter==="imp")a=a.filter(t=>t.type==="exp"&&t.item.imp);
   document.getElementById("lList").innerHTML=a.length?a.map(txRow).join(""):`<div class="empty">Nada laçado neste mês, parceiro.</div>`;
