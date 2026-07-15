@@ -1,12 +1,12 @@
 {
-  "name": "Grana⁺ · Diário Financeiro",
-  "short_name": "Grana⁺",
+  "name": "Grana do bolso",
+  "short_name": "Grana do bolso",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#FAEEE5",
-  "theme_color": "#FAEEE5",
-  "description": "Controle financeiro gamificado para quem recebe semanalmente.",
+  "background_color": "#EAE0C8",
+  "theme_color": "#EAE0C8",
+  "description": "Controle financeiro pessoal.",
   "icons": [
     {
       "src": "./icon-192.png",

@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#FAEEE5">
+<meta name="theme-color" content="#EAE0C8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Grana⁺ · Diário Financeiro</title>
+<title>Grana do bolso</title>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <script>if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));</script>
@@ -14,23 +14,23 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <style>
 :root{
-  --bg:#FAEEE5; --card:#FFF9F0; --card2:#F1E3CE; --line:#E2D3BB;
-  --txt:#18334B; --mut:#8A7A5F; --acc:#566746; --acc2:#566746;
-  --blue:#2E5577; --amber:#D9A46B; --red:#B85C3F; --purple:#8A7355;
+  --bg:#EAE0C8; --card:#F3ECDB; --card2:#DFD3B6; --line:#CFC2A2;
+  --txt:#090D17; --mut:#586878; --acc:#586878; --acc2:#586878;
+  --blue:#586878; --amber:#8B7B54; --red:#090D17; --purple:#586878;
   --r:16px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{font-size:16px}
 body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding-bottom:90px;min-height:100vh}
 .wrap{max-width:560px;margin:0 auto;padding:16px}
-header{position:sticky;top:0;z-index:50;background:rgba(250,238,229,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+header{position:sticky;top:0;z-index:50;background:rgba(234,224,200,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .hrow{max-width:560px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
 .logo{font-weight:800;font-size:1.15rem;letter-spacing:-.5px}
 .logo span{color:var(--acc)}
 .lvlbox{flex:1;min-width:0}
 .lvlname{font-size:.68rem;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .xpbar{height:6px;background:var(--line);border-radius:3px;margin-top:3px;overflow:hidden}
-.xpfill{height:100%;background:linear-gradient(90deg,var(--purple),var(--blue));border-radius:3px;transition:width .6s}
+.xpfill{height:100%;background:var(--acc);border-radius:3px;transition:width .6s}
 .streak{font-size:.85rem;font-weight:700;background:var(--card2);padding:6px 10px;border-radius:12px;white-space:nowrap}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
 .card h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:12px;font-weight:600}
@@ -52,18 +52,18 @@ header{position:sticky;top:0;z-index:50;background:rgba(250,238,229,.94);backdro
 .tx .d1{font-size:.9rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tx .d2{font-size:.72rem;color:var(--mut)}
 .tx .val{font-weight:700;font-size:.9rem;white-space:nowrap}
-.imp-tag{font-size:.6rem;background:rgba(222,142,112,.18);color:var(--red);padding:2px 6px;border-radius:6px;margin-left:6px;vertical-align:middle}
+.imp-tag{font-size:.6rem;background:rgba(9,13,23,.08);color:var(--red);padding:2px 6px;border-radius:6px;margin-left:6px;vertical-align:middle}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--acc2);color:#FAEEE5;font-weight:700;border:none;border-radius:12px;padding:12px 18px;font-size:.95rem;cursor:pointer;width:100%}
 .btn:active{transform:scale(.98)}
 .btn.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
 .btn.sm{width:auto;padding:8px 14px;font-size:.8rem}
-.btn.danger{background:rgba(222,142,112,.18);color:var(--red)}
-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(250,238,229,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);z-index:50}
+.btn.danger{background:rgba(9,13,23,.08);color:var(--red)}
+nav{position:fixed;bottom:0;left:0;right:0;background:rgba(234,224,200,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);z-index:50}
 .nrow{max-width:560px;margin:0 auto;display:flex}
-.nbtn{flex:1;background:none;border:none;color:var(--mut);padding:10px 0 max(10px,env(safe-area-inset-bottom));font-size:.62rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.nbtn{flex:1;background:none;border:none;color:var(--mut);padding:10px 0 max(10px,env(safe-area-inset-bottom));font-size:.8rem;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:52px}
 .nbtn .i{font-size:1.3rem}
 .nbtn.on{color:var(--acc)}
-.fab{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--blue));color:#FAEEE5;font-size:1.8rem;border:none;margin-top:-24px;box-shadow:0 4px 20px rgba(86,103,70,.45);cursor:pointer;font-weight:700;flex-shrink:0;align-self:center}
+.fab{width:56px;height:56px;border-radius:50%;background:#090D17;color:#EAE0C8;font-size:1.8rem;border:none;margin-top:-24px;box-shadow:0 4px 18px rgba(9,13,23,.3);cursor:pointer;font-weight:700;flex-shrink:0;align-self:center}
 .view{display:none} .view.on{display:block;animation:fade .25s}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:none;align-items:flex-end;justify-content:center}
@@ -87,7 +87,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .tog .sw::after{content:'';position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:3px;left:3px;transition:.2s}
 .tog.on .sw{background:var(--red)}
 .tog.on .sw::after{left:21px}
-.toast{background:var(--card2);border:1px solid var(--acc);color:var(--txt);padding:10px 18px;border-radius:14px;font-size:.85rem;font-weight:600;box-shadow:0 6px 24px rgba(24,51,75,.2);animation:fade .3s;max-width:94vw;text-align:center}
+.toast{background:var(--card2);border:1px solid var(--acc);color:var(--txt);padding:10px 18px;border-radius:14px;font-size:.85rem;font-weight:600;box-shadow:0 6px 24px rgba(9,13,23,.18);animation:fade .3s;max-width:94vw;text-align:center}
 #toasts{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;width:max-content;max-width:94vw;pointer-events:none}
 .ach{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .abox{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 6px;text-align:center}
@@ -122,7 +122,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 </head>
 <body>
 <header><div class="hrow">
-  <div class="logo">Grana<span>⁺</span></div>
+  <div class="logo">Grana <span>do bolso</span></div>
   <div class="lvlbox"><div class="lvlname" id="lvlName"></div><div class="xpbar"><div class="xpfill" id="xpFill"></div></div></div>
   <div class="streak" id="streakBox">🔥 0</div>
 </div></header>
@@ -131,7 +131,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 
 <!-- ============ INÍCIO ============ -->
 <div class="view on" id="v-home">
-  <div class="card" style="background:linear-gradient(135deg,#EAE8D5,#FFF9F0)">
+  <div class="card">
     <h3>Saldo livre</h3>
     <div class="big" id="hBalance">R$ 0,00</div>
     <div class="small" id="hSub" style="margin-top:4px"></div>
@@ -146,7 +146,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
   </div>
   <div class="card"><h3>🤠 Missões do rancho</h3><div id="hMissions"></div></div>
   <div class="card"><h3>Envelopes</h3><div id="hEnvelopes"></div></div>
-  <div class="card"><h3>💡 Insights</h3><div id="hInsights"></div></div>
+  <div class="card"><h3>Insights</h3><div id="hInsights"></div></div>
   <div class="card"><h3>Últimos lançamentos</h3><div id="hRecent"></div></div>
 </div>
 
@@ -170,8 +170,8 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 
 <!-- ============ CONTAS ============ -->
 <div class="view" id="v-bills">
-  <div class="card" style="background:linear-gradient(135deg,#E2E8EE,#FFF9F0)">
-    <h3>💳 Cartão de crédito — fatura aberta</h3>
+  <div class="card">
+    <h3>Cartão de crédito — fatura aberta</h3>
     <div class="big" id="ccTotal">R$ 0,00</div>
     <div class="small" id="ccInfo" style="margin-top:4px"></div>
     <div class="row" style="margin-top:12px;gap:8px">
@@ -182,12 +182,12 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
   </div>
   <div class="card"><h3>Lançamentos da fatura</h3><div id="ccList"></div></div>
   <div class="card">
-    <div class="row" style="margin-bottom:10px"><h3 style="margin:0">🔁 Contas recorrentes</h3><button class="btn sec sm" id="bEditBtn" onclick="toggleBillEdit()">✏️ Editar</button></div>
+    <div class="row" style="margin-bottom:10px"><h3 style="margin:0">Contas recorrentes</h3><button class="btn sec sm" id="bEditBtn" onclick="toggleBillEdit()">Editar</button></div>
     <div class="small" id="bTotal" style="margin-bottom:6px"></div>
     <div id="bList"></div>
     <button class="btn sec" style="margin-top:12px" onclick="openBillModal()">＋ Nova conta recorrente</button>
   </div>
-  <div class="card" style="cursor:pointer" onclick="openInvoices()"><div class="row"><h3 style="margin:0">🗂️ Faturas anteriores</h3><span class="small" id="ccPrevSum">ver ›</span></div></div>
+  <div class="card" style="cursor:pointer" onclick="openInvoices()"><div class="row"><h3 style="margin:0">Faturas anteriores</h3><span class="small" id="ccPrevSum">ver ›</span></div></div>
 </div>
 
 <!-- ============ ANÁLISE ============ -->
@@ -201,8 +201,8 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
   </div>
   <div class="card"><h3>Gastos por categoria</h3><canvas id="cCat" height="220"></canvas></div>
   <div class="card"><h3>Semana a semana</h3><canvas id="cWeek" height="200"></canvas></div>
-  <div class="card" style="border-color:rgba(222,142,112,.4)">
-    <h3 style="color:var(--red)">🤠 Duelo contra os impulsos</h3>
+  <div class="card" style="border-color:var(--line)">
+    <h3 style="color:var(--red)">Duelo contra os impulsos</h3>
     <div class="grid3" style="margin-bottom:14px">
       <div><div class="n neg" id="aImpTotal">R$ 0</div><div class="l">Por impulso (mês)</div></div>
       <div><div class="n" id="aImpPct">0%</div><div class="l">Dos seus gastos</div></div>
@@ -210,12 +210,12 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     </div>
     <div id="aImpMsg" class="small"></div>
   </div>
-  <div class="card"><h3>💡 Diagnóstico do mês atual</h3><div id="aInsights"></div></div>
+  <div class="card"><h3>Diagnóstico do mês atual</h3><div id="aInsights"></div></div>
 </div>
 
 <!-- ============ METAS ============ -->
 <div class="view" id="v-goals">
-  <div class="card" style="background:linear-gradient(135deg,#F0E5D0,#FFF9F0)">
+  <div class="card">
     <h3>Total guardado</h3>
     <div class="big" style="color:var(--purple)" id="gTotal">R$ 0,00</div>
     <div class="small" id="gRate" style="margin-top:4px"></div>
@@ -233,7 +233,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
   </div>
   <div class="card"><h3>🏆 Conquistas (<span id="pAchN">0</span>/<span id="pAchT">0</span>)</h3><div class="ach" id="pAch"></div></div>
   <div class="card">
-    <h3>☁️ Nuvem & Sincronização</h3>
+    <h3>Nuvem & Sincronização</h3>
     <div class="small" style="margin-bottom:10px"><span class="cloud-dot" id="cloudDot"></span><span id="cloudStatus">Desconectado — dados só neste aparelho</span></div>
     <div id="cloudSetup">
       <div class="small" style="margin-bottom:10px">Conecte seu projeto Firebase (gratuito) para sincronizar em todos os aparelhos. Veja o <b>GUIA-NUVEM.md</b> para criar o projeto em ~10 min.</div>
@@ -251,32 +251,31 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     </div>
   </div>
   <div class="card">
-    <h3>⚙️ Configurações</h3>
-    <div class="sect" style="border-top:none;padding-top:4px">👤 Sobre você</div>
+    <h3>Configurações</h3>
+    <div class="sect" style="border-top:none;padding-top:4px">Sobre você</div>
     <label>Seu nome</label><input id="sName" placeholder="Como te chamamos, parceiro?" oninput="settingsChanged()">
-    <div class="sect">💵 Sua renda</div>
+    <div class="sect">Sua renda</div>
     <label>Com que frequência você recebe?</label>
     <select id="sFreq" onchange="freqUi();settingsChanged()"><option value="sem">Semanal</option><option value="mes">Mensal</option></select>
     <label id="sWeeklyLbl">Quanto você recebe por semana (R$)</label><input id="sWeekly" type="number" inputmode="decimal" oninput="envSum();settingsChanged()">
     <label id="sPaydayLbl">Dia que você recebe</label>
     <select id="sPayday" onchange="settingsChanged()"><option value="0">Domingo</option><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option></select>
     <select id="sPaydayM" style="display:none" onchange="settingsChanged()"></select>
-    <div class="sect">✉️ Envelopes de gasto</div>
+    <div class="sect">Envelopes de gasto</div>
     <div class="small">Limite por categoria, cada um no seu período (semanal ou mensal). Deixe em branco para não usar.</div>
     <div id="sEnv"></div>
     <div class="small" id="sEnvSum" style="margin-top:8px"></div>
-    <div class="sect">🏷️ Suas categorias</div>
+    <div class="sect">Suas categorias</div>
     <div class="small">Crie categorias do seu jeito — elas ganham envelope próprio e aparecem na hora de laçar gastos.</div>
     <div id="sCats"></div>
     <div class="row" style="margin-top:10px;gap:8px">
-      <input id="cEmoji" placeholder="🏇" maxlength="4" style="width:64px;text-align:center;flex-shrink:0">
       <input id="cName" placeholder="Nome (ex.: Pets, Rolês, Skin...)">
       <button class="btn sm" style="flex-shrink:0" onclick="addCat()">＋ Criar</button>
     </div>
-    <div class="small" style="margin-top:16px;text-align:center">💾 Tudo aqui é salvo automaticamente enquanto você edita.</div>
+    <div class="small" style="margin-top:16px;text-align:center">Tudo aqui é salvo automaticamente enquanto você edita.</div>
   </div>
   <div class="card">
-    <h3>📦 Dados</h3>
+    <h3>Dados</h3>
     <button class="btn sec" onclick="document.getElementById('impXlsx').click()">Importar planilha (.xlsx)</button>
     <input type="file" id="impXlsx" accept=".xlsx" style="display:none" onchange="importXlsx(this)">
     <button class="btn sec" style="margin-top:8px" onclick="exportJson()">Exportar backup (.json)</button>
@@ -288,12 +287,12 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 
 <!-- NAV -->
 <nav><div class="nrow">
-  <button class="nbtn on" data-v="home" onclick="go('home')"><span class="i">🏠</span>Início</button>
-  <button class="nbtn" data-v="list" onclick="go('list')"><span class="i">🧾</span>Extrato</button>
-  <button class="nbtn" data-v="bills" onclick="go('bills')"><span class="i">💳</span>Cartão</button>
+  <button class="nbtn on" data-v="home" onclick="go('home')">Início</button>
+  <button class="nbtn" data-v="list" onclick="go('list')">Extrato</button>
+  <button class="nbtn" data-v="bills" onclick="go('bills')">Cartão</button>
   <button class="fab" onclick="openTxModal()">＋</button>
-  <button class="nbtn" data-v="anal" onclick="go('anal')"><span class="i">📊</span>Análise</button>
-  <button class="nbtn" data-v="goals" onclick="go('goals')"><span class="i">🎯</span>Metas</button>
+  <button class="nbtn" data-v="anal" onclick="go('anal')">Análise</button>
+  <button class="nbtn" data-v="goals" onclick="go('goals')">Metas</button>
 </div></nav>
 <div style="position:fixed;top:12px;right:12px;z-index:60"></div>
 
@@ -302,15 +301,15 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
   <div class="sheet">
     <button class="xclose" onclick="closeModal('mTx')">✕</button><h2 id="mTxTitle">Novo lançamento</h2>
     <div class="seg" id="txSeg">
-      <button class="on" onclick="setTxType('exp')">💸 Gasto</button>
-      <button onclick="setTxType('inc')">💰 Renda</button>
-      <button onclick="setTxType('sav')">🐷 Guardar</button>
+      <button class="on" onclick="setTxType('exp')">Gasto</button>
+      <button onclick="setTxType('inc')">Renda</button>
+      <button onclick="setTxType('sav')">Guardar</button>
     </div>
     <label>Valor (R$)</label><input id="txVal" type="number" inputmode="decimal" placeholder="0,00" step="0.01" onkeydown="if(event.key==='Enter')saveTx()">
     <div id="txExpFields">
       <label>Categoria</label><div class="chips" id="txCats"></div>
-      <div class="tog" id="txImp" onclick="this.classList.toggle('on')"><div><b>😈 Foi no gatilho rápido?</b><div class="small">Não estava planejado — a vontade atacou e você sacou a carteira</div></div><div class="sw"></div></div>
-      <div class="tog" id="txCC" onclick="this.classList.toggle('on')"><div><b>💳 No cartão de crédito?</b><div class="small">Entra na fatura aberta da aba Cartão</div></div><div class="sw"></div></div>
+      <div class="tog" id="txImp" onclick="this.classList.toggle('on')"><div><b>Foi por impulso?</b><div class="small">Não estava planejado — a vontade atacou e você comprou</div></div><div class="sw"></div></div>
+      <div class="tog" id="txCC" onclick="this.classList.toggle('on')"><div><b>No cartão de crédito?</b><div class="small">Entra na fatura aberta da aba Cartão</div></div><div class="sw"></div></div>
     </div>
     <div id="txIncFields" style="display:none">
       <label>Fonte</label><div class="chips" id="txSrcs"></div>
@@ -333,7 +332,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     <label>Emoji</label><div class="chips" id="gEmojis"></div>
     <label>Valor necessário (R$)</label><input id="gTarget" type="number" inputmode="decimal">
     <label>Plano de poupança (como fazer as contas)</label>
-    <div class="seg" id="gPerSeg"><button onclick="gPerSel('sem',this)" class="on">📅 Por semana</button><button onclick="gPerSel('mes',this)">🌙 Por mês</button></div>
+    <div class="seg" id="gPerSeg"><button onclick="gPerSel('sem',this)" class="on">Por semana</button><button onclick="gPerSel('mes',this)">Por mês</button></div>
     <button class="btn" style="margin-top:18px" onclick="saveGoal()">Criar meta</button>
   </div>
 </div>
@@ -346,16 +345,16 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 <!-- MODAL: conta recorrente -->
 <div class="modal" id="mBill" onclick="if(event.target===this)closeModal('mBill')">
   <div class="sheet">
-    <button class="xclose" onclick="closeModal('mBill')">✕</button><h2 id="mBillTitle">Nova conta recorrente 🔁</h2>
+    <button class="xclose" onclick="closeModal('mBill')">✕</button><h2 id="mBillTitle">Nova conta recorrente</h2>
     <label>Nome</label><input id="bName" placeholder="Ex.: Spotify, academia, internet">
     <label>Valor (R$)</label><input id="bVal" type="number" inputmode="decimal">
     <label>Vence todo dia</label><select id="bDay"></select>
     <label>Categoria</label><select id="bCat"></select>
     <label>Forma de pagamento</label>
-    <div class="seg" id="bPaySeg"><button onclick="bPaySel('deb',this)" class="on">💵 Débito/Pix</button><button onclick="bPaySel('cred',this)">💳 Crédito</button></div>
+    <div class="seg" id="bPaySeg"><button onclick="bPaySel('deb',this)" class="on">Débito/Pix</button><button onclick="bPaySel('cred',this)">Crédito</button></div>
     <div class="small" id="bPayHint" style="margin-top:8px">Você recebe aviso de vencimento e marca "Paguei ✓" quando pagar.</div>
     <button class="btn" style="margin-top:18px" id="bSaveBtn" onclick="saveBill()">Cadastrar conta ✓</button>
-    <button class="btn danger" id="bDelBtn" style="margin-top:8px;display:none" onclick="delBill(editBillId)">🗑️ Excluir esta conta</button>
+    <button class="btn danger" id="bDelBtn" style="margin-top:8px;display:none" onclick="delBill(editBillId)">Excluir esta conta</button>
   </div>
 </div>
 
@@ -363,7 +362,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 <div class="modal" id="mMonth" onclick="if(event.target===this)closeModal('mMonth')">
   <div class="sheet">
     <button class="xclose" onclick="closeModal('mMonth')">✕</button>
-    <h2>Escolher mês 📅</h2>
+    <h2>Escolher mês</h2>
     <div class="row" style="margin-bottom:14px">
       <button class="btn sec sm" onclick="mpYear(-1)">◀</button>
       <b id="mpY" style="font-size:1.15rem"></b>
@@ -378,7 +377,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 <div class="modal" id="mInv" onclick="if(event.target===this)closeModal('mInv')">
   <div class="sheet">
     <button class="xclose" onclick="closeModal('mInv')">✕</button>
-    <h2>🗂️ Faturas fechadas</h2>
+    <h2>Faturas fechadas</h2>
     <div id="invList"></div>
   </div>
 </div>
@@ -387,7 +386,7 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
 <div class="modal" id="mPayInv" onclick="if(event.target===this)closeModal('mPayInv')">
   <div class="sheet">
     <button class="xclose" onclick="closeModal('mPayInv')">✕</button>
-    <h2>💳 Pagar fatura</h2>
+    <h2>Pagar fatura</h2>
     <div class="small" id="piInfo"></div>
     <div id="piList" style="margin:10px 0 4px"></div>
     <label>Faltou algo? Inclua na fatura</label>
@@ -440,13 +439,13 @@ const cats=()=>CATS.concat((S.settings.customCats||[]).map(c=>[c.n,c.e||"🏷️
 const catEmoji=c=>{const f=cats().find(x=>x[0]===c);return f?f[1]:"📦";};
 function addCat(){
   const n=document.getElementById("cName").value.trim();
-  const e=document.getElementById("cEmoji").value.trim()||"🏷️";
+  const e="🏷️";
   if(!n)return toast("⚠️ Dê um nome à categoria, parceiro");
   if(cats().some(c=>c[0].toLowerCase()===n.toLowerCase()))return toast("⚠️ Essa categoria já existe");
   S.settings.customCats=S.settings.customCats||[];
   S.settings.customCats.push({n,e});
-  document.getElementById("cName").value="";document.getElementById("cEmoji").value="";
-  save();toast(`🏷️ Categoria ${e} ${n} criada!`);
+  document.getElementById("cName").value="";
+  save();toast(`Categoria ${n} criada ✓`);
 }
 function delCat(n){
   if(!confirm(`Remover a categoria "${n}"? Gastos antigos continuam registrados nela.`))return;
@@ -602,8 +601,8 @@ function setTxType(t){
   }
 }
 function renderChips(){
-  document.getElementById("txCats").innerHTML=cats().map(([c,e])=>`<button class="chip ${c===txCat?'on':''}" onclick="txCat='${c.replace(/'/g,"\\'")}';renderChips()">${e} ${c}</button>`).join("");
-  document.getElementById("txSrcs").innerHTML=SRCS.map(([c,e])=>`<button class="chip ${c===txSrc?'on':''}" onclick="txSrc='${c.replace(/'/g,"\\'")}';renderChips()">${e} ${c}</button>`).join("");
+  document.getElementById("txCats").innerHTML=cats().map(([c,e])=>`<button class="chip ${c===txCat?'on':''}" onclick="txCat='${c.replace(/'/g,"\\'")}';renderChips()">${c}</button>`).join("");
+  document.getElementById("txSrcs").innerHTML=SRCS.map(([c,e])=>`<button class="chip ${c===txSrc?'on':''}" onclick="txSrc='${c.replace(/'/g,"\\'")}';renderChips()">${c}</button>`).join("");
 }
 function saveTx(){
   const val=parseFloat(document.getElementById("txVal").value);
@@ -706,7 +705,7 @@ function renderGoalDetail(){
   document.getElementById("g2Body").innerHTML=`
   <button class="xclose" onclick="closeModal('mGoal2')">✕</button>
   <h2 style="display:flex;justify-content:space-between;align-items:center">${g.emoji} ${g.name}<span class="small">${Math.round(pct)}% da trilha</span></h2>
-  <div class="bar" style="height:12px"><div class="fill" style="width:${pct}%;background:linear-gradient(90deg,var(--purple),var(--blue))"></div></div>
+  <div class="bar" style="height:12px"><div class="fill" style="width:${pct}%;background:var(--acc)"></div></div>
   <div style="display:flex;margin:10px 0 0">${trail}</div>
   <div class="grid3" style="margin:16px 0 4px">
     <div><div class="n pos">${fmt0(got)}</div><div class="l">No baú</div></div>
@@ -804,7 +803,7 @@ function openPayInv(k){piKey=k;renderPayInv();showModal("mPayInv");}
 function renderPayInv(){
   const items=invItemsByKey(piKey);const tot=sum(items);
   document.getElementById("piInfo").innerHTML=`Fechada em <b>${pd(piKey).toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})}</b> · vence dia ${S.settings.cardDue||5} · toque no nome para editar o item`;
-  document.getElementById("piList").innerHTML=items.map(e=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);font-size:.85rem"><span style="cursor:pointer" onclick='closeModal("mPayInv");openTxModal(${JSON.stringify({type:"exp",item:e}).replace(/'/g,"&#39;")})'>${catEmoji(e.cat)} ${e.desc||e.cat} <span class="mut">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}</span></span><span style="display:flex;gap:8px;align-items:center"><span class="neg">−${fmt0(e.val)}</span><button class="btn danger sm" style="padding:2px 9px" onclick="piDel('${e.id}')">✕</button></span></div>`).join("")||`<div class="empty">Fatura vazia.</div>`;
+  document.getElementById("piList").innerHTML=items.map(e=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);font-size:.85rem"><span style="cursor:pointer" onclick='closeModal("mPayInv");openTxModal(${JSON.stringify({type:"exp",item:e}).replace(/'/g,"&#39;")})'>${e.desc||e.cat} <span class="mut">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}</span></span><span style="display:flex;gap:8px;align-items:center"><span class="neg">−${fmt0(e.val)}</span><button class="btn danger sm" style="padding:2px 9px" onclick="piDel('${e.id}')">✕</button></span></div>`).join("")||`<div class="empty">Fatura vazia.</div>`;
   document.getElementById("piPayBtn").textContent=`Confirmar pagamento · ${fmt0(tot)} ✓`;
 }
 function piDel(id){S.expenses=S.expenses.filter(x=>x.id!==id);save();renderPayInv();}
@@ -823,12 +822,12 @@ function piPay(){
   if(S.invPaid.some(p=>p.k===piKey))return toast("Essa fatura já foi paga, parceiro");
   S.invPaid.push({id:uid(),k:piKey,val:tot,d:todayStr()});
   addXP(15,"fatura domada 💳");
-  closeModal("mPayInv");save();toast(`💳 Fatura de ${fmt0(tot)} paga!`);
+  closeModal("mPayInv");save();toast(`Fatura de ${fmt0(tot)} paga ✓`);
 }
 function saveCard(){
   S.settings.cardClose=Number(document.getElementById("ccClose").value);
   S.settings.cardDue=Number(document.getElementById("ccDue").value);
-  save();toast("💳 Cartão configurado");
+  save();toast("Cartão configurado ✓");
 }
 function renderBills(){
   const close=Number(S.settings.cardClose||28),due=Number(S.settings.cardDue||5);
@@ -840,7 +839,7 @@ function renderBills(){
   document.getElementById("ccTotal").textContent=fmt(sum(cc));
   const nx=new Date(start);nx.setMonth(nx.getMonth()+1);
   document.getElementById("ccInfo").innerHTML=`${cc.length} lançamento${cc.length!==1?"s":""} desde ${start.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · fecha ${nx.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · vence dia ${due}`;
-  document.getElementById("ccList").innerHTML=cc.slice(0,8).map(e=>`<div class="tx" onclick='openTxModal(${JSON.stringify({type:"exp",item:e}).replace(/'/g,"&#39;")})'><div class="ico">${catEmoji(e.cat)}</div><div class="inf"><div class="d1">${e.desc||e.cat}${e.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · ${e.cat}</div></div><div class="val neg">−${fmt0(e.val)}</div></div>`).join("")||`<div class="empty">Nenhum gasto no cartão nesta fatura. Ao laçar um gasto, ative a chavinha 💳, parceiro.</div>`;
+  document.getElementById("ccList").innerHTML=cc.slice(0,8).map(e=>`<div class="tx" onclick='openTxModal(${JSON.stringify({type:"exp",item:e}).replace(/'/g,"&#39;")})'><div class="ico" style="font-weight:700;color:var(--mut)">${(e.cat||"?").charAt(0).toUpperCase()}</div><div class="inf"><div class="d1">${e.desc||e.cat}${e.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · ${e.cat}</div></div><div class="val neg">−${fmt0(e.val)}</div></div>`).join("")||`<div class="empty">Nenhum gasto no cartão nesta fatura. Ao laçar um gasto, ative a opção de cartão de crédito, parceiro.</div>`;
   // faturas anteriores (últimos 6 ciclos)
   let prev="",nPrev=0;
   for(let i=1;i<=6;i++){
@@ -852,25 +851,25 @@ function renderBills(){
     const k=ds(b),paidK=(S.invPaid||[]).some(p=>p.k===k);
     prev+=`<div style="border-bottom:1px solid var(--line)">
       <div class="row" style="padding:10px 0;cursor:pointer" onclick="const e=document.getElementById('${pid}');e.style.display=e.style.display==='none'?'block':'none'">
-        <span style="font-weight:600">🧾 Fechada em ${b.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})}</span>
+        <span style="font-weight:600">Fechada em ${b.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})}</span>
         <span style="font-weight:700;display:flex;gap:8px;align-items:center">${fmt0(sum(items))} ${paidK?`<span class="pos" style="font-size:.7rem">✓ paga</span>`:`<button class="btn sm" style="padding:4px 12px" onclick="event.stopPropagation();closeModal('mInv');openPayInv('${k}')">Pagar</button>`} <span class="mut" style="font-weight:400;font-size:.75rem">▾</span></span></div>
       <div id="${pid}" style="display:none;padding-bottom:10px">${items.map(e=>`<div class="row" style="padding:4px 0;font-size:.83rem"><span class="mut">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · ${catEmoji(e.cat)} ${e.desc||e.cat}</span><span class="neg">−${fmt0(e.val)}</span></div>`).join("")}</div>
     </div>`;
   }
   document.getElementById("invList").innerHTML=prev||`<div class="empty">Nenhuma fatura fechada ainda — elas aparecem aqui com o passar dos meses, parceiro.</div>`;
   document.getElementById("ccPrevSum").textContent=nPrev?`${nPrev} fatura${nPrev>1?"s":""} fechada${nPrev>1?"s":""} ›`:"nenhuma ainda ›";
-  document.getElementById("bEditBtn").textContent=billEdit?"✓ Concluir":"✏️ Editar";
+  document.getElementById("bEditBtn").textContent=billEdit?"Concluir ✓":"Editar";
   const unpaidInv=closedInvoices().filter(v=>!v.paid);
-  document.getElementById("ccPay").innerHTML=unpaidInv.length?`<button class="btn" style="margin-top:12px" onclick="openPayInv('${unpaidInv[0].k}')">💸 Pagar fatura fechada · ${fmt0(unpaidInv[0].total)}</button>`:"";
+  document.getElementById("ccPay").innerHTML=unpaidInv.length?`<button class="btn" style="margin-top:12px" onclick="openPayInv('${unpaidInv[0].k}')">Pagar fatura fechada · ${fmt0(unpaidInv[0].total)}</button>`:"";
   const m=thisMonth(),today=new Date().getDate();
   const bills=S.bills||[];
   document.getElementById("bTotal").innerHTML=bills.length?`Total fixo: <b>${fmt0(bills.reduce((a,b)=>a+Number(b.val),0))}/mês</b>`:"";
   document.getElementById("bList").innerHTML=bills.map(b=>{
     const paid=(b.paid||[]).includes(m);
     const cred=b.pay==="cred";
-    const st=cred?(paid?`<span style="color:var(--acc);font-weight:700">💳 Na fatura deste mês ✓</span>`:`<span class="mut">💳 Entra na fatura dia ${b.day}</span>`)
-      :(paid?`<span style="color:var(--acc);font-weight:700">✅ Paga este mês</span>`:today>b.day?`<span class="neg" style="font-weight:700">🚨 Atrasada (venceu dia ${b.day})</span>`:`<span class="mut">⏳ Vence dia ${b.day}${b.day-today<=3?" — "+(b.day===today?"HOJE!":"em "+(b.day-today)+"d"):""}</span>`);
-    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><div class="row"><span style="font-weight:600">${catEmoji(b.cat)} ${b.name} <span class="mut" style="font-size:.65rem">${cred?"crédito":"débito"}</span></span><span style="font-weight:700">${fmt0(b.val)}</span></div><div class="row" style="margin-top:6px"><span style="font-size:.75rem">${st}</span><span style="display:flex;gap:6px">${paid||cred?"":`<button class="btn sm" onclick="payBill('${b.id}')">Paguei ✓</button>`}${billEdit?`<button class="btn sec sm" style="padding:6px 12px" onclick="openBillModal('${b.id}')">✏️</button>`:""}</span></div></div>`;
+    const st=cred?(paid?`<span style="color:var(--acc);font-weight:700">Na fatura deste mês ✓</span>`:`<span class="mut">Entra na fatura dia ${b.day}</span>`)
+      :(paid?`<span style="color:var(--acc);font-weight:700">Paga este mês ✓</span>`:today>b.day?`<span class="neg" style="font-weight:700">Atrasada (venceu dia ${b.day})</span>`:`<span class="mut">Vence dia ${b.day}${b.day-today<=3?" — "+(b.day===today?"HOJE!":"em "+(b.day-today)+"d"):""}</span>`);
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><div class="row"><span style="font-weight:600">${b.name} <span class="mut" style="font-size:.65rem">${cred?"crédito":"débito"}</span></span><span style="font-weight:700">${fmt0(b.val)}</span></div><div class="row" style="margin-top:6px"><span style="font-size:.75rem">${st}</span><span style="display:flex;gap:6px">${paid||cred?"":`<button class="btn sm" onclick="payBill('${b.id}')">Paguei ✓</button>`}${billEdit?`<button class="btn sec sm" style="padding:6px 12px" onclick="openBillModal('${b.id}')">Editar</button>`:""}</span></div></div>`;
   }).join("")||`<div class="empty">Cadastre assinaturas e mensalidades (Spotify, academia, internet...) e eu te aviso quando vencem, parceiro.</div>`;
 }
 let bPay="deb";
@@ -891,7 +890,7 @@ function autoPostCreditBills(){ // recorrências no crédito caem sozinhas na fa
     S.expenses.push({id:uid(),d:ds(new Date(now.getFullYear(),now.getMonth(),Math.min(b.day,28))),cat:b.cat,desc:b.name+" (recorrente 💳)",val:Number(b.val),imp:false,cc:true});
     changed=true;
   });
-  if(changed){localStorage.setItem("grana_data",JSON.stringify(S));toast("💳 Recorrência lançada na fatura");}
+  if(changed){localStorage.setItem("grana_data",JSON.stringify(S));toast("Recorrência lançada na fatura");}
   return changed;
 }
 function openBillModal(id){
@@ -902,12 +901,12 @@ function openBillModal(id){
   document.getElementById("bPayHint").textContent=bPay==="cred"?"Entra sozinha na fatura do cartão no dia da cobrança — sem aviso de atraso.":"Você recebe aviso de vencimento e marca \"Paguei ✓\" quando pagar.";
   const sel=document.getElementById("bDay");
   if(!sel.options.length)sel.innerHTML=[...Array(28)].map((_,i)=>`<option value="${i+1}">Dia ${i+1}</option>`).join("");
-  document.getElementById("bCat").innerHTML=cats().map(([c,e])=>`<option value="${c}">${e} ${c}</option>`).join("");
+  document.getElementById("bCat").innerHTML=cats().map(([c,e])=>`<option value="${c}">${c}</option>`).join("");
   document.getElementById("bName").value=b?b.name:"";
   document.getElementById("bVal").value=b?b.val:"";
   document.getElementById("bDay").value=b?b.day:1;
   if(b)document.getElementById("bCat").value=b.cat;
-  document.getElementById("mBillTitle").textContent=b?"Editar conta 🔁":"Nova conta recorrente 🔁";
+  document.getElementById("mBillTitle").textContent=b?"Editar conta":"Nova conta recorrente";
   document.getElementById("bSaveBtn").textContent=b?"Salvar alterações ✓":"Cadastrar conta ✓";
   document.getElementById("bDelBtn").style.display=b?"block":"none";
   showModal("mBill");
@@ -923,7 +922,7 @@ function saveBill(){
     closeModal("mBill");autoPostCreditBills();save();toast("✓ Conta atualizada");return;
   }
   S.bills.push({id:uid(),name,val,day:Number(document.getElementById("bDay").value),cat:document.getElementById("bCat").value,pay:bPay,paid:[]});
-  closeModal("mBill");autoPostCreditBills();save();toast("🔁 Conta cadastrada, parceiro");
+  closeModal("mBill");autoPostCreditBills();save();toast("Conta cadastrada ✓");
 }
 function payBill(id){
   const b=(S.bills||[]).find(x=>x.id===id);if(!b)return;
@@ -1031,7 +1030,7 @@ function renderHome(){
   const bal=totalInc-totalEx-saved;
   const el=document.getElementById("hBalance");
   el.textContent=fmt(bal);el.className="big "+(bal>=0?"pos":"neg");
-  document.getElementById("hSub").innerHTML=`💰 ${fmt0(totalInc)} recebido · 💸 ${fmt0(totalEx)} gasto · 🐷 ${fmt0(saved)} guardado`;
+  document.getElementById("hSub").innerHTML=`${fmt0(totalInc)} recebido · ${fmt0(totalEx)} gasto · ${fmt0(saved)} guardado`;
   const we=new Date(ws);we.setDate(we.getDate()+6);
   document.getElementById("hWeekTitle").textContent=`Semana ${ws.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} – ${we.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}`;
   const wIn=sum(winc)||weeklyBudget();
@@ -1057,9 +1056,9 @@ function renderHome(){
   const envs=Object.entries(S.settings.envelopes).map(([c,v])=>[c,envOf(v)]).filter(([c,v])=>v.v>0);
   document.getElementById("hEnvelopes").innerHTML=envs.length?envs.map(([c,en])=>{
     const spent=sum((en.p==="mes"?mexH:wex).filter(e=>e.cat===c));const lim=en.v;const p=Math.min(100,100*spent/lim);
-    return `<div class="env"><div class="row"><span>${catEmoji(c)} ${c} <span class="mut" style="font-size:.65rem">(${en.p==="mes"?"mês":"semana"})</span></span><span class="${spent>lim?"neg":"mut"}">${fmt0(spent)} / ${fmt0(lim)}</span></div><div class="bar"><div class="fill ${spent>lim?"over":p>80?"warn":""}" style="width:${p}%"></div></div></div>`;
-  }).join(""):`<div class="empty">Monte seus envelopes no Perfil 👤 (semanais ou mensais) e eu te mostro quanto ainda dá pra gastar, parceiro.</div>`;
-  document.getElementById("hInsights").innerHTML=getInsights().slice(0,4).map(([e,t])=>`<div class="insight"><span class="e">${e}</span><span>${t}</span></div>`).join("");
+    return `<div class="env"><div class="row"><span>${c} <span class="mut" style="font-size:.65rem">(${en.p==="mes"?"mês":"semana"})</span></span><span class="${spent>lim?"neg":"mut"}">${fmt0(spent)} / ${fmt0(lim)}</span></div><div class="bar"><div class="fill ${spent>lim?"over":p>80?"warn":""}" style="width:${p}%"></div></div></div>`;
+  }).join(""):`<div class="empty">Monte seus envelopes no Perfil (semanais ou mensais) e eu te mostro quanto ainda dá pra gastar, parceiro.</div>`;
+  document.getElementById("hInsights").innerHTML=getInsights().slice(0,4).map(([e,t])=>`<div class="insight"><span>${t}</span></div>`).join("");
   // recentes
   const all=allTx().slice(0,5);
   document.getElementById("hRecent").innerHTML=all.length?all.map(txRow).join(""):`<div class="empty">Toque no botão <b style="color:var(--acc)">＋</b> para laçar seu primeiro gasto, parceiro!</div>`;
@@ -1074,14 +1073,14 @@ function txRow(t){
   const it=t.item;
   if(t.type==="inv"){
     const date=pd(it.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"});
-    return `<div class="tx" onclick="go('bills')"><div class="ico">💳</div><div class="inf"><div class="d1">Fatura do cartão paga</div><div class="d2">${date} · fechada em ${pd(it.k).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}</div></div><div class="val neg">−${fmt0(it.val)}</div></div>`;
+    return `<div class="tx" onclick="go('bills')"><div class="ico" style="font-weight:700;color:var(--mut)">F</div><div class="inf"><div class="d1">Fatura do cartão paga</div><div class="d2">${date} · fechada em ${pd(it.k).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}</div></div><div class="val neg">−${fmt0(it.val)}</div></div>`;
   }
-  const emoji=t.type==="exp"?catEmoji(it.cat):(SRCS.find(s=>s[0]===it.src)||["","💵"])[1];
+  const mono=((t.type==="exp"?it.cat:it.src)||"R").charAt(0).toUpperCase();
   const title=t.type==="exp"?(it.desc||it.cat):(it.src||"Renda");
   const date=pd(it.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"});
   return `<div class="tx" onclick='openTxModal(${JSON.stringify(t).replace(/'/g,"&#39;")})'>
-    <div class="ico">${emoji}</div>
-    <div class="inf"><div class="d1">${title}${it.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${date} · ${t.type==="exp"?it.cat:"Renda"}${it.cc?" · 💳":""}</div></div>
+    <div class="ico" style="font-weight:700;color:var(--mut)">${mono}</div>
+    <div class="inf"><div class="d1">${title}${it.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${date} · ${t.type==="exp"?it.cat:"Renda"}${it.cc?" · cartão":""}</div></div>
     <div class="val ${t.type==="exp"?"neg":"pos"}">${t.type==="exp"?"−":"+"}${fmt0(it.val)}</div></div>`;
 }
 let mpTarget="list",mpYearVal=0;
@@ -1153,9 +1152,9 @@ function renderGoals(){
       <span style="font-weight:700">${g.emoji} ${g.name}</span>
       <span class="small">abrir ficha ›</span></div>
       <div class="row" style="font-size:.85rem;margin-bottom:5px"><span class="pos">${fmt0(got)}</span><span class="mut">${fmt0(g.target)}</span></div>
-      <div class="bar" style="height:10px"><div class="fill" style="width:${p}%;background:linear-gradient(90deg,var(--purple),var(--blue))"></div></div>
+      <div class="bar" style="height:10px"><div class="fill" style="width:${p}%;background:var(--acc)"></div></div>
       <div class="small" style="margin-top:8px">${proj}</div></div>`;
-  }).join("")||`<div class="card"><div class="empty">🗺️ Trace seu mapa do tesouro (um jogo, uma viagem, um celular...) e use o botão ＋ → 🐷 Guardar para encher o baú.<br><br>Eu calculo quando você chega lá, parceiro!</div></div>`;
+  }).join("")||`<div class="card"><div class="empty">🗺️ Trace seu mapa do tesouro (um jogo, uma viagem, um celular...) e use o botão ＋ → Guardar para encher o baú.<br><br>Eu calculo quando você chega lá, parceiro!</div></div>`;
 }
 function renderMe(){
   const L=levelInfo();
@@ -1174,9 +1173,9 @@ function renderMe(){
     const pm=document.getElementById("sPaydayM");
     if(!pm.options.length)pm.innerHTML=[...Array(31)].map((_,i)=>`<option value="${i+1}">Dia ${i+1}</option>`).join("");
     pm.value=S.settings.paydayM||5;
-    document.getElementById("sCats").innerHTML=(S.settings.customCats||[]).length?(S.settings.customCats||[]).map(c=>`<div class="row" style="margin-top:8px"><span style="font-size:.85rem">${c.e} ${c.n}</span><button class="btn danger sm" style="padding:3px 10px" onclick="delCat('${c.n.replace(/'/g,"\\'")}')">✕</button></div>`).join(""):`<div class="small" style="margin-top:6px">Nenhuma categoria própria ainda.</div>`;
+    document.getElementById("sCats").innerHTML=(S.settings.customCats||[]).length?(S.settings.customCats||[]).map(c=>`<div class="row" style="margin-top:8px"><span style="font-size:.85rem">${c.n}</span><button class="btn danger sm" style="padding:3px 10px" onclick="delCat('${c.n.replace(/'/g,"\\'")}')">✕</button></div>`).join(""):`<div class="small" style="margin-top:6px">Nenhuma categoria própria ainda.</div>`;
     freqUi(false);
-    document.getElementById("sEnv").innerHTML=cats().map(([c,e])=>{const en=envOf(S.settings.envelopes[c]);return `<div class="row" style="margin-top:8px"><span style="font-size:.85rem;flex:1">${e} ${c}</span><input data-env="${c}" type="number" inputmode="decimal" value="${en.v||""}" placeholder="—" style="width:84px" oninput="envSum();settingsChanged()"><select data-envp="${c}" style="width:92px" onchange="envSum();settingsChanged()"><option value="sem"${en.p!=="mes"?" selected":""}>/semana</option><option value="mes"${en.p==="mes"?" selected":""}>/mês</option></select></div>`;}).join("");
+    document.getElementById("sEnv").innerHTML=cats().map(([c,e])=>{const en=envOf(S.settings.envelopes[c]);return `<div class="row" style="margin-top:8px"><span style="font-size:.85rem;flex:1">${c}</span><input data-env="${c}" type="number" inputmode="decimal" value="${en.v||""}" placeholder="—" style="width:84px" oninput="envSum();settingsChanged()"><select data-envp="${c}" style="width:92px" onchange="envSum();settingsChanged()"><option value="sem"${en.p!=="mes"?" selected":""}>/semana</option><option value="mes"${en.p==="mes"?" selected":""}>/mês</option></select></div>`;}).join("");
     envSum();
   }
 }
@@ -1207,7 +1206,7 @@ function envSum(){
   const mes=document.getElementById("sFreq").value==="mes";
   const raw=Number(document.getElementById("sWeekly").value||S.settings.weeklyIncome||0);
   const w=mes?raw*12/52:raw;
-  document.getElementById("sEnvSum").innerHTML=t?`Total dos envelopes ≈ <b>${fmt0(t)}</b> de <b>${fmt0(w)}</b> por semana${mes?` (sua renda mensal de ${fmt0(raw)} ≈ ${fmt0(w)}/semana)`:""} → sobra <b class="${w-t>=0?"pos":"neg"}">${fmt0(w-t)}</b> para guardar 🐷`:"";
+  document.getElementById("sEnvSum").innerHTML=t?`Total dos envelopes ≈ <b>${fmt0(t)}</b> de <b>${fmt0(w)}</b> por semana${mes?` (sua renda mensal de ${fmt0(raw)} ≈ ${fmt0(w)}/semana)`:""} → sobra <b class="${w-t>=0?"pos":"neg"}">${fmt0(w-t)}</b> para guardar`:"";
 }
 let setTimer=null;
 function settingsChanged(){clearTimeout(setTimer);setTimer=setTimeout(()=>saveSettings(true),900);}
@@ -1241,11 +1240,11 @@ function renderCharts(){
   const mex=S.expenses.filter(e=>monthKey(e.d)===m);
   const by={};mex.forEach(e=>by[e.cat]=(by[e.cat]||0)+e.val);
   const cats=Object.keys(by);
-  const colors=["#566746","#18334B","#6B5D45","#B85C3F","#8FA678","#5E7A99","#D9A46B","#8A9BA8"];
+  const colors=["#586878","#090D17","#8B99A8","#B0A488","#3E4C5B","#6E7E8E","#C6BBA0","#2A3440"];
   if(charts.cat)charts.cat.destroy();
   charts.cat=new Chart(document.getElementById("cCat"),{type:"doughnut",
     data:{labels:cats.map(c=>catEmoji(c)+" "+c),datasets:[{data:cats.map(c=>by[c]),backgroundColor:colors,borderWidth:0}]},
-    options:{plugins:{legend:{position:"right",labels:{color:"#6B5D45",font:{size:11},boxWidth:12}}},cutout:"62%"}});
+    options:{plugins:{legend:{position:"right",labels:{color:"#586878",font:{size:11},boxWidth:12}}},cutout:"62%"}});
   // semanas
   const labels=[],inc=[],exp=[];
   const cur=weekStart(new Date());
@@ -1256,8 +1255,8 @@ function renderCharts(){
   }
   if(charts.week)charts.week.destroy();
   charts.week=new Chart(document.getElementById("cWeek"),{type:"bar",
-    data:{labels,datasets:[{label:"Renda",data:inc,backgroundColor:"#566746",borderRadius:5},{label:"Gastos",data:exp,backgroundColor:"#B85C3F",borderRadius:5}]},
-    options:{scales:{x:{ticks:{color:"#6B5D45",font:{size:10}},grid:{display:false}},y:{ticks:{color:"#6B5D45"},grid:{color:"#E2D3BB"}}},plugins:{legend:{labels:{color:"#6B5D45"}}}}});
+    data:{labels,datasets:[{label:"Renda",data:inc,backgroundColor:"#586878",borderRadius:5},{label:"Gastos",data:exp,backgroundColor:"#090D17",borderRadius:5}]},
+    options:{scales:{x:{ticks:{color:"#586878",font:{size:10}},grid:{display:false}},y:{ticks:{color:"#586878"},grid:{color:"#CFC2A2"}}},plugins:{legend:{labels:{color:"#586878"}}}}});
   // impulsos
   const imp=mex.filter(e=>e.imp);
   document.getElementById("aImpTotal").textContent=fmt0(sum(imp));
@@ -1272,9 +1271,9 @@ function renderCharts(){
     msg=`Seus impulsos atacam mais em <b>${topC[0]}</b>${worst?` e nas <b>${WD[worst[0]]}s</b>`:""}. `;
     const yearly=sum(imp)*12;
     msg+=`Nesse ritmo, são <b>${fmt0(yearly)}/ano</b> em compras não planejadas. Lei do oeste: espere 24h antes de sacar a carteira, parceiro.`;
-  }else msg="Nenhum gatilho rápido este mês, parceiro. 👏 (Marque a chavinha 😈 quando o gasto não for planejado — honestidade é a lei do rancho.)";
+  }else msg="Nenhum impulso este mês, parceiro. (Marque a opção de impulso quando o gasto não for planejado — honestidade é a lei do rancho.)";
   document.getElementById("aImpMsg").innerHTML=msg;
-  document.getElementById("aInsights").innerHTML=getInsights().map(([e,t])=>`<div class="insight"><span class="e">${e}</span><span>${t}</span></div>`).join("");
+  document.getElementById("aInsights").innerHTML=getInsights().map(([e,t])=>`<div class="insight"><span>${t}</span></div>`).join("");
 }
 
 /* ================= IMPORT / EXPORT ================= */
@@ -1310,7 +1309,7 @@ function importXlsx(inp){
         });
       }
       S.game.imported=true;
-      save();toast(`📥 Importado: ${nE} gastos, ${nI} rendas`);
+      save();toast(`Importado ✓ ${nE} gastos, ${nI} rendas`);
     }catch(err){toast("⚠️ Erro ao ler a planilha: "+err.message);}
     inp.value="";
   };
@@ -1320,7 +1319,7 @@ function exportJson(){
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:"application/json"}));
   a.download="grana-backup-"+todayStr()+".json";a.click();
-  toast("📦 Backup exportado");
+  toast("Backup exportado ✓");
 }
 function importJson(inp){
   const f=inp.files[0];if(!f)return;
@@ -1367,7 +1366,7 @@ async function initCloud(){
             S=Object.assign(structuredClone(DEF),remote);
             localStorage.setItem("grana_data",JSON.stringify(S));
             render();fb.applying=false;
-            toast("☁️ Dados sincronizados");
+            toast("Dados sincronizados ✓");
           }else if(!remote){scheduleCloudSave();}
         });
         checkAchievements();
@@ -1405,7 +1404,7 @@ function renderCloud(){
 }
 
 /* ================= INIT ================= */
-document.querySelector("nav .nrow").insertAdjacentHTML("beforeend",`<button class="nbtn" data-v="me" onclick="go('me')"><span class="i">👤</span>Perfil</button>`);
+document.querySelector("nav .nrow").insertAdjacentHTML("beforeend",`<button class="nbtn" data-v="me" onclick="go('me')">Perfil</button>`);
 processPastWeeks();
 autoPostCreditBills();
 render();
