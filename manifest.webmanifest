@@ -4,8 +4,8 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#EAE0C8",
-  "theme_color": "#EAE0C8",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
   "description": "Controle financeiro pessoal.",
   "icons": [
     {
