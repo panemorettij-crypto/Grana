@@ -181,12 +181,12 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
   </div>
   <div class="card"><h3>Lançamentos da fatura</h3><div id="ccList"></div></div>
   <div class="card">
-    <h3>🔁 Contas recorrentes</h3>
+    <div class="row" style="margin-bottom:10px"><h3 style="margin:0">🔁 Contas recorrentes</h3><button class="btn sec sm" id="bEditBtn" onclick="toggleBillEdit()">✏️ Editar</button></div>
     <div class="small" id="bTotal" style="margin-bottom:6px"></div>
     <div id="bList"></div>
     <button class="btn sec" style="margin-top:12px" onclick="openBillModal()">＋ Nova conta recorrente</button>
   </div>
-  <div class="card"><h3>🗂️ Faturas anteriores</h3><div id="ccPrev"></div></div>
+  <div class="card" style="cursor:pointer" onclick="openInvoices()"><div class="row"><h3 style="margin:0">🗂️ Faturas anteriores</h3><span class="small" id="ccPrevSum">ver ›</span></div></div>
 </div>
 
 <!-- ============ ANÁLISE ============ -->
@@ -369,6 +369,15 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
     </div>
     <div id="mpGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
     <div class="small" style="margin-top:12px;text-align:center">• = mês com movimentos</div>
+  </div>
+</div>
+
+<!-- MODAL: faturas fechadas -->
+<div class="modal" id="mInv" onclick="if(event.target===this)closeModal('mInv')">
+  <div class="sheet">
+    <button class="xclose" onclick="closeModal('mInv')">✕</button>
+    <h2>🗂️ Faturas fechadas</h2>
+    <div id="invList"></div>
   </div>
 </div>
 
@@ -750,6 +759,9 @@ function cardCycleStart(){ // data do último fechamento (fatura aberta = compra
   const dd=Math.min(c,new Date(y,m+1,0).getDate());
   return new Date(y,m,dd);
 }
+let billEdit=false;
+function toggleBillEdit(){billEdit=!billEdit;renderBills();}
+function openInvoices(){showModal("mInv");}
 function cycleBoundary(k){ // k=0 → início da fatura aberta; k>0 → k ciclos antes
   const c=Number(S.settings.cardClose||28);
   const s=cardCycleStart();
@@ -774,11 +786,12 @@ function renderBills(){
   document.getElementById("ccInfo").innerHTML=`${cc.length} lançamento${cc.length!==1?"s":""} desde ${start.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · fecha ${nx.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · vence dia ${due}`;
   document.getElementById("ccList").innerHTML=cc.slice(0,8).map(e=>`<div class="tx" onclick='openTxModal(${JSON.stringify({type:"exp",item:e}).replace(/'/g,"&#39;")})'><div class="ico">${catEmoji(e.cat)}</div><div class="inf"><div class="d1">${e.desc||e.cat}${e.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · ${e.cat}</div></div><div class="val neg">−${fmt0(e.val)}</div></div>`).join("")||`<div class="empty">Nenhum gasto no cartão nesta fatura. Ao laçar um gasto, ative a chavinha 💳, parceiro.</div>`;
   // faturas anteriores (últimos 6 ciclos)
-  let prev="";
+  let prev="",nPrev=0;
   for(let i=1;i<=6;i++){
     const a=cycleBoundary(i),b=cycleBoundary(i-1);
     const items=S.expenses.filter(e=>e.cc&&pd(e.d)>a&&pd(e.d)<=b).sort((x,y)=>y.d.localeCompare(x.d));
     if(!items.length)continue;
+    nPrev++;
     const pid="ccp"+i;
     prev+=`<div style="border-bottom:1px solid var(--line)">
       <div class="row" style="padding:10px 0;cursor:pointer" onclick="const e=document.getElementById('${pid}');e.style.display=e.style.display==='none'?'block':'none'">
@@ -787,7 +800,9 @@ function renderBills(){
       <div id="${pid}" style="display:none;padding-bottom:10px">${items.map(e=>`<div class="row" style="padding:4px 0;font-size:.83rem"><span class="mut">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · ${catEmoji(e.cat)} ${e.desc||e.cat}</span><span class="neg">−${fmt0(e.val)}</span></div>`).join("")}</div>
     </div>`;
   }
-  document.getElementById("ccPrev").innerHTML=prev||`<div class="empty">Faturas fechadas aparecem aqui com o passar dos meses, parceiro.</div>`;
+  document.getElementById("invList").innerHTML=prev||`<div class="empty">Nenhuma fatura fechada ainda — elas aparecem aqui com o passar dos meses, parceiro.</div>`;
+  document.getElementById("ccPrevSum").textContent=nPrev?`${nPrev} fatura${nPrev>1?"s":""} fechada${nPrev>1?"s":""} ›`:"nenhuma ainda ›";
+  document.getElementById("bEditBtn").textContent=billEdit?"✓ Concluir":"✏️ Editar";
   const m=thisMonth(),today=new Date().getDate();
   const bills=S.bills||[];
   document.getElementById("bTotal").innerHTML=bills.length?`Total fixo: <b>${fmt0(bills.reduce((a,b)=>a+Number(b.val),0))}/mês</b>`:"";
@@ -796,7 +811,7 @@ function renderBills(){
     const cred=b.pay==="cred";
     const st=cred?(paid?`<span style="color:var(--acc);font-weight:700">💳 Na fatura deste mês ✓</span>`:`<span class="mut">💳 Entra na fatura dia ${b.day}</span>`)
       :(paid?`<span style="color:var(--acc);font-weight:700">✅ Paga este mês</span>`:today>b.day?`<span class="neg" style="font-weight:700">🚨 Atrasada (venceu dia ${b.day})</span>`:`<span class="mut">⏳ Vence dia ${b.day}${b.day-today<=3?" — "+(b.day===today?"HOJE!":"em "+(b.day-today)+"d"):""}</span>`);
-    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><div class="row"><span style="font-weight:600">${catEmoji(b.cat)} ${b.name} <span class="mut" style="font-size:.65rem">${cred?"crédito":"débito"}</span></span><span style="font-weight:700">${fmt0(b.val)}</span></div><div class="row" style="margin-top:6px"><span style="font-size:.75rem">${st}</span><span style="display:flex;gap:6px">${paid||cred?"":`<button class="btn sm" onclick="payBill('${b.id}')">Paguei ✓</button>`}<button class="btn danger sm" style="padding:6px 10px" onclick="delBill('${b.id}')">✕</button></span></div></div>`;
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--line)"><div class="row"><span style="font-weight:600">${catEmoji(b.cat)} ${b.name} <span class="mut" style="font-size:.65rem">${cred?"crédito":"débito"}</span></span><span style="font-weight:700">${fmt0(b.val)}</span></div><div class="row" style="margin-top:6px"><span style="font-size:.75rem">${st}</span><span style="display:flex;gap:6px">${paid||cred?"":`<button class="btn sm" onclick="payBill('${b.id}')">Paguei ✓</button>`}${billEdit?`<button class="btn danger sm" style="padding:6px 10px" onclick="delBill('${b.id}')">✕</button>`:""}</span></div></div>`;
   }).join("")||`<div class="empty">Cadastre assinaturas e mensalidades (Spotify, academia, internet...) e eu te aviso quando vencem, parceiro.</div>`;
 }
 let bPay="deb";
