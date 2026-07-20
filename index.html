@@ -305,11 +305,16 @@ input[type=range]{padding:0;background:transparent;border:none;height:32px;accen
       <button onclick="setTxType('inc')">Renda</button>
       <button onclick="setTxType('sav')">Guardar</button>
     </div>
-    <label>Valor (R$)</label><input id="txVal" type="number" inputmode="decimal" placeholder="0,00" step="0.01" onkeydown="if(event.key==='Enter')saveTx()">
+    <label>Valor (R$)</label><input id="txVal" type="number" inputmode="decimal" placeholder="0,00" step="0.01" onkeydown="if(event.key==='Enter')saveTx()" oninput="instHint()">
     <div id="txExpFields">
       <label>Categoria</label><div class="chips" id="txCats"></div>
       <div class="tog" id="txImp" onclick="this.classList.toggle('on')"><div><b>Foi por impulso?</b><div class="small">Não estava planejado — a vontade atacou e você comprou</div></div><div class="sw"></div></div>
-      <div class="tog" id="txCC" onclick="this.classList.toggle('on')"><div><b>No cartão de crédito?</b><div class="small">Entra na fatura aberta da aba Cartão</div></div><div class="sw"></div></div>
+      <div class="tog" id="txCC" onclick="this.classList.toggle('on');document.getElementById('txInstWrap').style.display=(this.classList.contains('on')&&!editTx)?'block':'none';instHint()"><div><b>No cartão de crédito?</b><div class="small">Entra na fatura aberta da aba Cartão</div></div><div class="sw"></div></div>
+      <div id="txInstWrap" style="display:none">
+        <label>Parcelamento</label>
+        <select id="txInst" onchange="instHint()"></select>
+        <div class="small" id="txInstHint" style="margin-top:6px"></div>
+      </div>
     </div>
     <div id="txIncFields" style="display:none">
       <label>Fonte</label><div class="chips" id="txSrcs"></div>
@@ -564,13 +569,18 @@ function processPastWeeks(){
 /* ================= LANÇAMENTOS ================= */
 function openTxModal(edit){
   editTx=edit||null;
-  document.getElementById("mTxTitle").textContent=edit?"Editar lançamento":"Novo lançamento";
+  document.getElementById("mTxTitle").textContent=edit?(edit.item.inst?`Editar parcela ${edit.item.inst.i}/${edit.item.inst.n}`:"Editar lançamento"):"Novo lançamento";
   document.getElementById("txDel").style.display=edit?"block":"none";
   document.getElementById("txVal").value=edit?edit.item.val:"";
   document.getElementById("txDesc").value=edit?(edit.item.desc||edit.item.note||""):"";
   document.getElementById("txDate").value=edit?edit.item.d:todayStr();
   document.getElementById("txImp").classList.toggle("on",!!(edit&&edit.item.imp));
   document.getElementById("txCC").classList.toggle("on",!!(edit&&edit.item.cc));
+  const _iw=document.getElementById("txInstWrap"),_is=document.getElementById("txInst");
+  if(!_is.options.length)_is.innerHTML=[...Array(24)].map((_,i)=>`<option value="${i+1}">${i===0?"À vista (1x)":(i+1)+"x"}</option>`).join("");
+  _is.value="1";
+  _iw.style.display=(!edit&&document.getElementById("txCC").classList.contains("on"))?"block":"none";
+  instHint();
   setTxType(edit?edit.type:"exp");
   if(edit&&edit.type==="exp")txCat=edit.item.cat;
   if(edit&&edit.type==="inc")txSrc=edit.item.src;
@@ -604,6 +614,12 @@ function renderChips(){
   document.getElementById("txCats").innerHTML=cats().map(([c,e])=>`<button class="chip ${c===txCat?'on':''}" onclick="txCat='${c.replace(/'/g,"\\'")}';renderChips()">${c}</button>`).join("");
   document.getElementById("txSrcs").innerHTML=SRCS.map(([c,e])=>`<button class="chip ${c===txSrc?'on':''}" onclick="txSrc='${c.replace(/'/g,"\\'")}';renderChips()">${c}</button>`).join("");
 }
+function instHint(){
+  const el=document.getElementById("txInstHint");if(!el)return;
+  const n=Number((document.getElementById("txInst")||{}).value||1);
+  const v=parseFloat(document.getElementById("txVal").value)||0;
+  el.textContent=n>1?(v>0?`${n}× de ${fmt(v/n)} — informe o valor TOTAL da compra`:`informe o valor TOTAL da compra; divido em ${n} faturas`):"";
+}
 function saveTx(){
   const val=parseFloat(document.getElementById("txVal").value);
   if(!val||val<=0)return toast("⚠️ Coloque um valor válido");
@@ -619,8 +635,22 @@ function saveTx(){
   if(txType==="exp"){
     const imp=document.getElementById("txImp").classList.contains("on");
     const cc=document.getElementById("txCC").classList.contains("on");
-    S.expenses.push({id:uid(),d,cat:txCat,desc,val,imp,cc});
-    registerLogDay(d);addXP(10,imp?"laçado (até impulso anotado conta, parceiro 🤠)":"gasto laçado 🤠");
+    const nInst=cc?Number(document.getElementById("txInst").value||1):1;
+    if(cc&&nInst>1){
+      const g=uid(),base=pd(d);
+      const per=Math.floor(val/nInst*100)/100;
+      let acc=0;
+      for(let i=1;i<=nInst;i++){
+        const dt=i===1?base:new Date(base.getFullYear(),base.getMonth()+(i-1),Math.min(base.getDate(),28));
+        const v=i===nInst?Math.round((val-acc)*100)/100:per;
+        acc=Math.round((acc+per)*100)/100;
+        S.expenses.push({id:uid(),d:ds(dt),cat:txCat,desc,val:v,imp,cc:true,inst:{g,i,n:nInst}});
+      }
+      registerLogDay(d);addXP(10,`compra em ${nInst}x laçada 🤠`);
+    }else{
+      S.expenses.push({id:uid(),d,cat:txCat,desc,val,imp,cc});
+      registerLogDay(d);addXP(10,imp?"laçado (até impulso anotado conta, parceiro 🤠)":"gasto laçado 🤠");
+    }
   }else if(txType==="inc"){
     S.incomes.push({id:uid(),d,src:txSrc,val,note:desc});
     registerLogDay(d);addXP(10,"dinheiro no alforje 💰");
@@ -803,7 +833,7 @@ function openPayInv(k){piKey=k;renderPayInv();showModal("mPayInv");}
 function renderPayInv(){
   const items=invItemsByKey(piKey);const tot=sum(items);
   document.getElementById("piInfo").innerHTML=`Fechada em <b>${pd(piKey).toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})}</b> · vence dia ${S.settings.cardDue||5} · toque no nome para editar o item`;
-  document.getElementById("piList").innerHTML=items.map(e=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);font-size:.85rem"><span style="cursor:pointer" onclick='closeModal("mPayInv");openTxModal(${JSON.stringify({type:"exp",item:e}).replace(/'/g,"&#39;")})'>${e.desc||e.cat} <span class="mut">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}</span></span><span style="display:flex;gap:8px;align-items:center"><span class="neg">−${fmt0(e.val)}</span><button class="btn danger sm" style="padding:2px 9px" onclick="piDel('${e.id}')">✕</button></span></div>`).join("")||`<div class="empty">Fatura vazia.</div>`;
+  document.getElementById("piList").innerHTML=items.map(e=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);font-size:.85rem"><span style="cursor:pointer" onclick='closeModal("mPayInv");openTxModal(${JSON.stringify({type:"exp",item:e}).replace(/'/g,"&#39;")})'>${e.desc||e.cat}${e.inst?` ${e.inst.i}/${e.inst.n}`:""} <span class="mut">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})}</span></span><span style="display:flex;gap:8px;align-items:center"><span class="neg">−${fmt0(e.val)}</span><button class="btn danger sm" style="padding:2px 9px" onclick="piDel('${e.id}')">✕</button></span></div>`).join("")||`<div class="empty">Fatura vazia.</div>`;
   document.getElementById("piPayBtn").textContent=`Confirmar pagamento · ${fmt0(tot)} ✓`;
 }
 function piDel(id){S.expenses=S.expenses.filter(x=>x.id!==id);save();renderPayInv();}
@@ -835,11 +865,12 @@ function renderBills(){
   if(!selC.options.length){const op=[...Array(28)].map((_,i)=>`<option value="${i+1}">${i+1}</option>`).join("");selC.innerHTML=op;selD.innerHTML=op;}
   if(document.activeElement!==selC&&document.activeElement!==selD){selC.value=close;selD.value=due;}
   const start=cardCycleStart();
-  const cc=S.expenses.filter(e=>e.cc&&pd(e.d)>start).sort((a,b)=>b.d.localeCompare(a.d));
-  document.getElementById("ccTotal").textContent=fmt(sum(cc));
   const nx=new Date(start);nx.setMonth(nx.getMonth()+1);
-  document.getElementById("ccInfo").innerHTML=`${cc.length} lançamento${cc.length!==1?"s":""} desde ${start.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · fecha ${nx.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · vence dia ${due}`;
-  document.getElementById("ccList").innerHTML=cc.slice(0,8).map(e=>`<div class="tx" onclick='openTxModal(${JSON.stringify({type:"exp",item:e}).replace(/'/g,"&#39;")})'><div class="ico" style="font-weight:700;color:var(--mut)">${(e.cat||"?").charAt(0).toUpperCase()}</div><div class="inf"><div class="d1">${e.desc||e.cat}${e.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · ${e.cat}</div></div><div class="val neg">−${fmt0(e.val)}</div></div>`).join("")||`<div class="empty">Nenhum gasto no cartão nesta fatura. Ao laçar um gasto, ative a opção de cartão de crédito, parceiro.</div>`;
+  const cc=S.expenses.filter(e=>e.cc&&pd(e.d)>start&&pd(e.d)<=nx).sort((a,b)=>b.d.localeCompare(a.d));
+  document.getElementById("ccTotal").textContent=fmt(sum(cc));
+  const fut=sum(S.expenses.filter(e=>e.cc&&pd(e.d)>nx));
+  document.getElementById("ccInfo").innerHTML=`${cc.length} lançamento${cc.length!==1?"s":""} desde ${start.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · fecha ${nx.toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · vence dia ${due}${fut>0?` · parcelas futuras: ${fmt0(fut)}`:""}`;
+  document.getElementById("ccList").innerHTML=cc.slice(0,8).map(e=>`<div class="tx" onclick='openTxModal(${JSON.stringify({type:"exp",item:e}).replace(/'/g,"&#39;")})'><div class="ico" style="font-weight:700;color:var(--mut)">${(e.cat||"?").charAt(0).toUpperCase()}</div><div class="inf"><div class="d1">${e.desc||e.cat}${e.inst?` <span class="mut" style="font-size:.72rem">${e.inst.i}/${e.inst.n}</span>`:""}${e.imp?'<span class="imp-tag">IMPULSO</span>':""}</div><div class="d2">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · ${e.cat}</div></div><div class="val neg">−${fmt0(e.val)}</div></div>`).join("")||`<div class="empty">Nenhum gasto no cartão nesta fatura. Ao laçar um gasto, ative a opção de cartão de crédito, parceiro.</div>`;
   // faturas anteriores (últimos 6 ciclos)
   let prev="",nPrev=0;
   for(let i=1;i<=6;i++){
@@ -853,7 +884,7 @@ function renderBills(){
       <div class="row" style="padding:10px 0;cursor:pointer" onclick="const e=document.getElementById('${pid}');e.style.display=e.style.display==='none'?'block':'none'">
         <span style="font-weight:600">Fechada em ${b.toLocaleDateString("pt-BR",{day:"numeric",month:"short",year:"2-digit"})}</span>
         <span style="font-weight:700;display:flex;gap:8px;align-items:center">${fmt0(sum(items))} ${paidK?`<span class="pos" style="font-size:.7rem">✓ paga</span>`:`<button class="btn sm" style="padding:4px 12px" onclick="event.stopPropagation();closeModal('mInv');openPayInv('${k}')">Pagar</button>`} <span class="mut" style="font-weight:400;font-size:.75rem">▾</span></span></div>
-      <div id="${pid}" style="display:none;padding-bottom:10px">${items.map(e=>`<div class="row" style="padding:4px 0;font-size:.83rem"><span class="mut">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · ${catEmoji(e.cat)} ${e.desc||e.cat}</span><span class="neg">−${fmt0(e.val)}</span></div>`).join("")}</div>
+      <div id="${pid}" style="display:none;padding-bottom:10px">${items.map(e=>`<div class="row" style="padding:4px 0;font-size:.83rem"><span class="mut">${pd(e.d).toLocaleDateString("pt-BR",{day:"numeric",month:"short"})} · ${e.desc||e.cat}${e.inst?` (${e.inst.i}/${e.inst.n})`:""}</span><span class="neg">−${fmt0(e.val)}</span></div>`).join("")}</div>
     </div>`;
   }
   document.getElementById("invList").innerHTML=prev||`<div class="empty">Nenhuma fatura fechada ainda — elas aparecem aqui com o passar dos meses, parceiro.</div>`;
@@ -1373,6 +1404,11 @@ async function initCloud(){
             render();fb.applying=false;
             toast("Dados sincronizados ✓");
           }else if(!remote){scheduleCloudSave();}
+        },err=>{
+          if(err&&err.code==="permission-denied"){
+            toast("Esta conta Google não está autorizada neste app");
+            try{firebase.auth().signOut();}catch(e){}
+          }
         });
         checkAchievements();
       }
@@ -1394,7 +1430,12 @@ function scheduleCloudSave(){
   clearTimeout(fb.timer);
   fb.timer=setTimeout(()=>{
     firebase.firestore().collection("grana").doc(fb.user.uid).set(JSON.parse(JSON.stringify(S)))
-      .catch(err=>toast("⚠️ Falha ao sincronizar: "+err.code));
+      .catch(err=>{
+        if(err&&err.code==="permission-denied"){
+          toast("Esta conta Google não está autorizada a sincronizar");
+          try{firebase.auth().signOut();}catch(e){}
+        }else toast("⚠️ Falha ao sincronizar: "+(err&&err.code||"erro"));
+      });
   },1200);
 }
 function renderCloud(){
